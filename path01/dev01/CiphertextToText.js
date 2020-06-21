@@ -1,0 +1,240 @@
+
+
+
+
+function ciphertextToText(request, sender, sendResponse) {
+
+    console.log("CiphertextToText:JSON(request): " + JSON.stringify(request));
+
+    var replacement_text = "";
+    replacement_text = request.ciphertext_replacement_text;
+
+    console.log("CiphertextToText:new text: " + replacement_text);
+
+    if (replacement_text) {
+
+        var newFragment = document.createRange().createContextualFragment(replacement_text);
+
+        // unly text is to be used, so extract the text from this html
+
+        console.log("CiphertextToText:new text(html): " + replacement_text);
+        var replacementStr = "";
+        replacementStr = newFragment.textContent;
+        console.log("CiphertextToText:new text(textonly): " + replacementStr);
+
+        var modified_selection_text;
+
+        if (typeof window.getSelection != "undefined") {
+            var sel = window.getSelection();
+            if (sel.rangeCount) {
+                // var container = document.createElement("div");
+                console.log("p2," + sel.rangeCount);
+                for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+
+                    // the Glovebox ciphertext is a plain text node without markup.
+                    // Get the preceeding text content.
+
+                    var selectStartOffset = sel.getRangeAt(i).startOffset;
+                    console.log("CiphertextToText:reWritePageGetHTMLselected: Range.startOffset:" + selectStartOffset);
+
+                    var selectEndOffset = sel.getRangeAt(i).endOffset;
+                    console.log("CiphertextToText:reWritePageGetHTMLselected: Range.startOffset:" + selectEndOffset);
+
+                    var selection_text = sel.getRangeAt(i).toString();
+                    var rangesize = selection_text.length;
+                    console.log("CiphertextToText:reWritePageGetHTMLselected: Range.size:" + rangesize);
+
+                    var selection_end_pos = selectStartOffset + rangesize;
+
+                    // get the whole of the surrounding text
+
+                    var fulltextofnode = sel.getRangeAt(i).startContainer.textContent;
+
+                    console.log("pageWriterCiphertextToText:reWritePageGetHTMLselected: Range.startContainer:" + fulltextofnode);
+
+                    // grab the piece of the fulltext of the node preceeding the selected text and see if it contains the opening statement
+                    var preceeding = fulltextofnode.substring(0, selectStartOffset);
+
+                    console.log("pageWriterCiphertextToText:reWritePageGetHTMLselected: preceeding:" + preceeding);
+
+                    var following = fulltextofnode.substring(selectStartOffset + rangesize);
+
+                    console.log("pageWriterCiphertextToText:reWritePageGetHTMLselected: following:" + following);
+
+                    // check if selection contain the opening statement, and if not look in the preceeding
+
+                    var glovebox_header_regex = /(:Glovebox:[^:]*:[^:]*:)/g;
+                    // var glovebox_header_regex = /:Gl/g;
+
+
+                    // ok, see if it is in the preceeding text with selection_text appended
+
+                    // pick the glovobox text which intersects with the selection text.
+                    // - if more than one, only the first one.
+
+
+                    console.log("pageWriterCiphertextToText:reWritePageGetHTMLselected: has to contain the Glovebox header:" + preceeding + selection_text + following);
+                    var t = preceeding + selection_text + following;
+
+                    // text
+                    // Glovebox_start
+                    // start selection
+                    // end selection
+                    // Glovebox_end
+                    // text
+                    // Glovebox_start
+                    // Glovebox_end
+                    // text
+
+                    // identity the exact extent of the Glovebox text - which is then replaces with the decrytped text (or html stripped of markup)
+                    // identity the node where the Glovebox ciphertext begins.
+
+                    var k = 0;
+                    while ((match3 = glovebox_header_regex.exec(t)) != null && k < 1000) {
+                        console.log("pageWriterCiphertextToText:reWritePage: contains##: selection begin: " + selectStartOffset + " end" + selection_end_pos);
+
+                        // console.log("match found at " + match3.index);
+                        //  console.log("match 0 found of length " + match3[0].length);
+                        //   console.log("match 1 found of length " + match3[1].length);
+                        //    console.log("match found of length " + match3[k].length);
+                        var token_end_pos = match3.index + match3[k].length;
+                        var token_start_pos = match3.index;
+
+                        console.log("match found of length token_start_pos=" + token_start_pos + "  token_end_pos=" + token_end_pos);
+
+                        // either selection begins inside token
+
+
+                        if (token_start_pos <= selectStartOffset && selectStartOffset <= token_end_pos) {
+                            console.log("selection beigns inside token");
+                            // break out of while loop
+                            k = k + 10000;
+                            // move the selection to match the Glovebox token.
+
+                            modified_selection_text = t.substring(token_start_pos, token_end_pos);
+                            console.log("returning: " + modified_selection_text);
+
+                        } else if (token_start_pos <= selection_end_pos && selection_end_pos <= token_end_pos) {
+                            // or selection ends inside Glovebox token
+
+                            console.log("selection ends inside token");
+                            // break out of while loop
+                            k = k + 10000;
+
+                            modified_selection_text = t.substring(token_start_pos, token_end_pos);
+                            console.log("returning: " + modified_selection_text);
+
+                        } else if (selectStartOffset < token_start_pos && token_end_pos < selection_end_pos) {
+                            // or selection fully encloses Glovebox token
+                            console.log("selection encloses token");
+                            // break out of while loop
+                            k = k + 10000;
+
+                            modified_selection_text = t.substring(token_start_pos, token_end_pos);
+                            console.log("returning: " + modified_selection_text);
+
+                        }
+
+                        // carry out replacement
+                        console.log("replacing " + fulltextofnode.substring(token_end_pos, token_start_pos) + " with " + newFragment.textContent);
+
+                        console.log("range " + sel.getRangeAt(i).textContent);
+                        // expand range
+                        console.log("range startcontainer " + sel.getRangeAt(i).startContainer);
+
+                        console.log("range startcontainer textContent " + sel.getRangeAt(i).startContainer.textContent);
+
+                        console.log("range .startContainer.childNodes " + sel.getRangeAt(i).startContainer.childNodes);
+
+                        console.log("range .startContainer.childNodes " + sel.getRangeAt(i).startContainer.childNodes);
+                        console.log("range .startContainer.childNodes.length " + sel.getRangeAt(i).startContainer.childNodes.length);
+
+                        console.log("range...from " + token_start_pos);
+
+                        sel.getRangeAt(i).setStart(sel.getRangeAt(i).startContainer, token_start_pos);
+                        sel.getRangeAt(i).setEnd(sel.getRangeAt(i).startContainer, token_end_pos);
+
+                        // If there is text at the start of the Glovebox ciphertext add the replacement text to the end of this text (node). I.e do not add another node, just expand an existing one.
+
+                        // What is the node immediately preceeding the selection ?
+
+
+                        console.log("sel.getRangeAt(i).commonAncestorContainer.nodeType: " + sel.getRangeAt(i).commonAncestorContainer.nodeType);
+
+                        console.log("sel.getRangeAt(i).startContainer.nodeType: " + sel.getRangeAt(i).startContainer.nodeType);
+                        console.log("sel.getRangeAt(i).startOffset: " + sel.getRangeAt(i).startOffset);
+                        console.log("sel.getRangeAt(i).startContainer: " + sel.getRangeAt(i).startContainer);
+
+                        console.log("sel.getRangeAt(i).startContainer.textContent: " + sel.getRangeAt(i).startContainer.textContent);
+
+                        console.log("sel.getRangeAt(i).endContainer.nodeType: " + sel.getRangeAt(i).endContainer.nodeType);
+                        console.log("sel.getRangeAt(i).endOffset: " + sel.getRangeAt(i).endOffset);
+                        console.log("sel.getRangeAt(i).endContainer: " + sel.getRangeAt(i).endContainer);
+
+                        console.log("sel.getRangeAt(i).  is same: " + sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer));
+
+                        // if start node is a text node. annd the cipher text to this node. At the end of the text.
+                        if (sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer)) {
+                            if (sel.getRangeAt(i).startContainer.nodeType == 3) {
+
+                                let begin = sel.getRangeAt(i).startContainer.textContent.substring(0, sel.getRangeAt(i).startOffset);
+
+                                let end = sel.getRangeAt(i).endContainer.textContent.substring(sel.getRangeAt(i).endOffset);
+
+                                console.log("sel.getRangeAt(i).endContainer, begin: " + begin);
+
+                                console.log("sel.getRangeAt(i).endContainer, end: " + end);
+
+                                sel.getRangeAt(i).startContainer.textContent = begin + replacementStr + end;
+                                console.log("p4");
+                            } else {
+                                console.log("p5");
+                            }
+                        } else {
+                            console.log("start and end node not the same");
+                            if (sel.getRangeAt(i).startContainer.nodeType == 3) {
+                                // append the cipher text to the start node
+                                let begin = sel.getRangeAt(i).startContainer.textContent.substring(0, sel.getRangeAt(i).startOffset);
+
+                                sel.getRangeAt(i).startContainer.textContent = begin + replacementStr;
+                                // cut back the end node
+                                if (sel.getRangeAt(i).endContainer.nodeType == 3) {
+                                    console.log("sel.getRangeAt(i).endOffset" + sel.getRangeAt(i).endOffset);
+                                    console.log("sel.getRangeAt(i).endContainer.textContent.length" + sel.getRangeAt(i).endContainer.textContent.length);
+                                    console.log("sel.getRangeAt(i).endContainer.textContent.substring( 2,5)" + sel.getRangeAt(i).endContainer.textContent.substring(2, 5));
+
+                                    let end = sel.getRangeAt(i).endContainer.textContent.substring(sel.getRangeAt(i).endOffset);
+                                    console.log("sel" + end);
+                                    // wipe the selected html, the selection may have contained markup at it should be removed too
+                                    //        var e = sel.getRangeAt(i).extractContents();
+
+                                    sel.getRangeAt(i).endContainer.textContent = end;
+                                }
+                                console.log("p4");
+                            } else {
+                                console.log("p5");
+                            }
+                        }
+
+                        // delete Glovebox cipher text
+                        //var e = sel.getRangeAt(i).extractContents()
+
+                        // insert the new content before
+                        //sel.getRangeAt(i).insertNode(newFragment);
+
+
+                        k++;
+                    }
+
+                }
+            }
+        }
+
+    } else {
+        console.log("no replacement text provided.");
+
+    }
+
+}
+
+browser.runtime.onMessage.addListener(ciphertextToText);

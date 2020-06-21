@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<link rel="stylesheet" href="navigate-collection.css"/>
+	</head>
+	<body>
+		<script src="/utils/glovebox-basics.js"></script>
+
+		
+
+
+
+
+			<h3>Scan</h3>
+			<form class="scan-tabs">
+				<button class="scan-tabs">scan all tabs</button>
+			</form>
+			<h3>Generate new encryption key</h3>
+			<form class="generate-encryption-key" >
+				<button class="generate-encryption-key">generate enc key</button>
+			</form>
+
+	
+<!--
+		<div id="app">
+			<h3>Stored images</h3>
+			<input placeholder="filter image" class="image-filter"></input>
+			<button class="add">add</button>
+			<button class="reload-images">reload</button>
+			<button class="delete-images">delete</button>
+			<ul class="thumbnails"></ul>
+		</div>
+-->
+		
+		
+					<script src="/deps/idb-key-storage.js"></script>
+					<script src="/deps/uuidv4.js"></script>
+					<script src="/utils/handle-window-drag-and-drop.js"></script>
+					<script src="/utils/image-store.js"></script>
+
+
+					<h3>Encryption keys</h3>
+
+					<ul class="encryptionkeys"></ul>
+
+					<h3>Decryption Keys</h3>default key
+
+					<ul class="decryptionkeys"></ul>
+
+		
+
+					<h3>Decryption Keys</h3>default key
+
+
+					<h3>Encryption Keys</h3>
+
+
+
+					<div id="2">
+						<h3>Stored keys</h3>
+
+						<button class="reload-images">reload</button>
+						<button class="reload-i">reload2</button>
+						<button class="delete-images">delete</button>
+						<ul class="thumbnails"></ul>
+						<table class="encryptionkeys" id="foo:bar"></table>
+
+						<table class="encryptionkeys2">
+							<tr border="1"><td>col 1</td><td>col 2</td></tr>
+
+
+						</table>
+
+					</div>
+					<button class="add-decryptionkeys" >add-decryptionkeys</button>
+					<script type="module" src="navigate-collection.js"></script>
+				</body>
+			</html>
+			
