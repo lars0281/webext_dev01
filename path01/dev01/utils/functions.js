@@ -1,7 +1,7 @@
 
 
 
-export function loadFromIndexedDB_async(dbName, storeName, id) {
+export  function loadFromIndexedDB_async(dbName, storeName, id) {
     console.log("loadFromIndexedDB:0");
     console.log("loadFromIndexedDB:1 " + dbName);
     console.log("loadFromIndexedDB:2 " + storeName);
@@ -33,8 +33,13 @@ export function loadFromIndexedDB_async(dbName, storeName, id) {
 
             // console.log("loadFromIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
 
+
+try {
+	
+
             objectRequest.onerror = function (event) {
-                reject(Error('Error text'));
+               // reject(Error('Error text'));
+			reject('Error text');
             };
 
             objectRequest.onsuccess = function (event) {
@@ -43,9 +48,17 @@ export function loadFromIndexedDB_async(dbName, storeName, id) {
 
                     resolve(objectRequest.result);
                 } else {
-                    reject(Error('object not found'));
+                    //reject(Error('object not found'));
+				reject('object not found');
+					
                 }
             };
+			
+			   } catch (error) {
+            console.log(error);
+         
+        }
+
         };
     });
 }
@@ -60,7 +73,51 @@ export async function loadFromIndexedDB(dbName, storeName, id) {
 
 }
 
+export async function generateRSAKeyPair() {
+    // for signing
+    // name: "RSASSA-PKCS1-v1_5"
+    // for encryption
+    // name: "RSA-OAEP"
 
+    console.log("generateRSAKeyPair");
+
+    const key = await window.crypto.subtle.generateKey({
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["sign", "verify"]);
+
+    const key2 = await window.crypto.subtle.generateKey({
+            name: "RSA-OAEP",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["encrypt", "decrypt"]);
+
+    return {
+        RSASSAPKCS1v1_5_privateKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key.privateKey, ),
+        RSASSAPKCS1v1_5_publicKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key.publicKey, ),
+        RSAOAEP_privateKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key2.privateKey, ),
+        RSAOAEP_publicKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key2.publicKey, ),
+    };
+}
 
 export function arrayBufferToBase64(buffer) {
     var binary = '';
@@ -83,15 +140,13 @@ export function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+export function saveToIndexedDB_async(dbName, storeName, keyId, object) {
 
-export function saveToIndexedDB(dbName, storeName, keyId, object) {
-    console.log("saveToIndexedDB:0");
-    console.log("saveToIndexedDB:dbname " + dbName);
-    console.log("saveToIndexedDB:objectstorename " + storeName);
-    console.log("saveToIndexedDB:keyId " + keyId);
-    console.log("saveToIndexedDB:object " + JSON.stringify(object));
+    console.log("saveToIndexedDB_async:dbname " + dbName);
+    console.log("saveToIndexedDB_async:objectstorename " + storeName);
+    console.log("saveToIndexedDB_async:keyId " + keyId);
+    console.log("saveToIndexedDB_async:object " + JSON.stringify(object));
 
-    
     //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
 
     return new Promise(
@@ -103,20 +158,26 @@ export function saveToIndexedDB(dbName, storeName, keyId, object) {
         //if (object.taskTitle === undefined)
         //            reject(Error('object has no taskTitle.'));
 
+var dbRequest;
 
-        var dbRequest = indexedDB.open(dbName);
+        try {
 
-        console.log("saveToIndexedDB: 1 dbRequest=" + dbRequest)
+         dbRequest = indexedDB.open(dbName);
+   } catch (error) {
+            console.log(error);
+         
+        }
+        console.log("saveToIndexedDB_async: 1 dbRequest=" + dbRequest);
 
         dbRequest.onerror = function (event) {
             console.log("saveToIndexedDB:error.open:db " + dbName);
             reject(Error("IndexedDB database error"));
         };
 
-        console.log("saveToIndexedDB: 2")
+        console.log("saveToIndexedDB: 2" + JSON.stringify(dbRequest));
 
         dbRequest.onupgradeneeded = function (event) {
-            console.log("saveToIndexedDB: 21")
+            console.log("saveToIndexedDB: 21");
             var database = event.target.result;
             console.log("saveToIndexedDB:db create obj store " + storeName);
             var objectStore = database.createObjectStore(storeName, {
@@ -124,35 +185,54 @@ export function saveToIndexedDB(dbName, storeName, keyId, object) {
                 });
         };
 
-        console.log("saveToIndexedDB: 3")
+        console.log("saveToIndexedDB: 3" + JSON.stringify(dbRequest));
+        try {
 
-        dbRequest.onsuccess = function (event) {
-       //     console.log("saveToIndexedDB: 31")
-            var database = event.target.result;
-            var transaction = database.transaction([storeName], 'readwrite');
-            var objectStore = transaction.objectStore(storeName);
-            console.log("saveToIndexedDB:objectStore put: " + JSON.stringify(object));
-	  
-            var objectRequest = objectStore.put(object); // Overwrite if already exists
+            dbRequest.onsuccess = function (event) {
+                     console.log("saveToIndexedDB: 31");
+                var database = event.target.result;
+                     console.log("saveToIndexedDB: 32");
+                var transaction = database.transaction([storeName], 'readwrite');
+                     console.log("saveToIndexedDB: 33");
+                var objectStore = transaction.objectStore(storeName);
+                console.log("saveToIndexedDB:objectStore put: " + JSON.stringify(object));
 
-            //console.log("saveToIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
+                var objectRequest = objectStore.put(object); // Overwrite if already exists
 
-            objectRequest.onerror = function (event) {
-                console.log("saveToIndexedDB:error: " + storeName);
+                console.log("saveToIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
 
-                reject(Error('Error text'));
+                objectRequest.onerror = function (event) {
+                    console.log("saveToIndexedDB:error: " + storeName);
+
+                    reject(Error('Error text'));
+                };
+
+                objectRequest.onsuccess = function (event) {
+                    console.log("saveToIndexedDB:success: " + storeName);
+                    resolve('Data saved OK');
+                };
             };
 
-            objectRequest.onsuccess = function (event) {
-                console.log("saveToIndexedDB:success: " + storeName);
-                resolve('Data saved OK');
-            };
-        };
+        } catch (error) {
+            console.log(error);
+           
+        }
+
     });
 }
 
-export function deleteFromIndexedDB(dbName, storeName, keyId) {
-    console.log("deleteFromIndexedDB:0");
+export async function saveToIndexedDB(dbName, storeName, id, object) {
+
+    console.log("saveToIndexedDB:1 " + dbName);
+    console.log("saveToIndexedDB:2 " + storeName);
+    console.log("saveToIndexedDB:3 " + id);
+    console.log("saveToIndexedDB:4 " + JSON.stringify(object));
+
+    await saveToIndexedDB_async(dbName, storeName, id, object);
+
+}
+
+export function deleteFromIndexedDB_async(dbName, storeName, keyId) {
     console.log("deleteFromIndexedDB:1 " + dbName);
     console.log("deleteFromIndexedDB:2 " + storeName);
     console.log("deleteFromIndexedDB:3 " + keyId);
@@ -164,14 +244,14 @@ export function deleteFromIndexedDB(dbName, storeName, keyId) {
 
         var dbRequest = indexedDB.open(dbName);
 
-        console.log("deleteFromIndexedDB: 1 dbRequest=" + dbRequest)
+        //  console.log("deleteFromIndexedDB: 1 dbRequest=" + dbRequest)
 
         dbRequest.onerror = function (event) {
             console.log("deleteFromIndexedDB:error.open:db " + dbName);
             reject(Error("IndexedDB database error"));
         };
 
-        console.log("deleteFromIndexedDB: 2")
+        //  console.log("deleteFromIndexedDB: 2")
 
         dbRequest.onupgradeneeded = function (event) {
             console.log("deleteFromIndexedDB: 21")
@@ -182,30 +262,39 @@ export function deleteFromIndexedDB(dbName, storeName, keyId) {
                 });
         };
 
-        console.log("deleteFromIndexedDB: 3")
+        // console.log("deleteFromIndexedDB: 3")
 
         dbRequest.onsuccess = function (event) {
-            console.log("deleteFromIndexedDB: 31")
+            //       console.log("deleteFromIndexedDB: 31")
             var database = event.target.result;
             var transaction = database.transaction([storeName], 'readwrite');
             var objectStore = transaction.objectStore(storeName);
             var objectRequest = objectStore.delete(keyId); // Overwrite if exists
 
             objectRequest.onerror = function (event) {
-                console.log("deleteFromIndexedDB:error: " + storeName);
+                console.log("deleteFromIndexedDB:error: " + storeName + "/" + keyId);
 
                 reject(Error('Error text'));
             };
 
             objectRequest.onsuccess = function (event) {
-                console.log("deleteFromIndexedDB:success: " + storeName);
+                console.log("deleteFromIndexedDB:success: " + storeName + "/" + keyId);
                 resolve('Data saved OK');
             };
         };
     });
 }
 
+export async function deleteFromIndexedDB(dbName, storeName, keyId) {
+    console.log("deleteFromIndexedDB:1 " + dbName);
+    console.log("deleteFromIndexedDB:2 " + storeName);
+    console.log("deleteFromIndexedDB:3 " + keyId);
 
+    await deleteFromIndexedDB_async(dbName, storeName, keyId);
+
+    //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+
+}
 
 /**
  * Secure Hash Algorithm (SHA1)

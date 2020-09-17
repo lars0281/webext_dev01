@@ -16,11 +16,18 @@
 			<form class="scan-tabs">
 				<button class="scan-tabs">scan all tabs</button>
 			</form>
-			<h3>Generate new encryption key</h3>
-			<form class="generate-encryption-key" >
-				<button class="generate-encryption-key">generate enc key</button>
-			</form>
+	
 
+	
+
+					<h3>Private Keys</h3>
+
+					<ul class="privatekeys"></ul>
+
+	<!--	<h4>Generate new private key</h4>-->
+			<form class="generate-private-key" >
+				<button class="generate-private-key">generate private key</button>
+			</form>
 	
 <!--
 		<div id="app">
@@ -44,18 +51,32 @@
 
 					<ul class="encryptionkeys"></ul>
 
-					<h3>Decryption Keys</h3>default key
+	<!--		<h4>Generate new encryption key</h4>-->
+			<form class="generate-encryption-key" >
+				<button class="generate-encryption-key">generate enc key</button>
+			</form>
+
+					<h3>Decryption Keys</h3>
 
 					<ul class="decryptionkeys"></ul>
 
-		
+					<h3>Key Offers</h3>
+List of secure key offers made.
+					<ul class="keysecureoffers"></ul>
+
+List of secure key offers accepted.
+					<ul class="acceptedsecurekeyoffers"></ul>
+
+
+		<!--
 
 					<h3>Decryption Keys</h3>default key
 
 
 					<h3>Encryption Keys</h3>
 
-
+		-->
+<!--
 
 					<div id="2">
 						<h3>Stored keys</h3>
@@ -74,6 +95,23 @@
 
 					</div>
 					<button class="add-decryptionkeys" >add-decryptionkeys</button>
+-->
+
+
+					
+	<h3>Backup keys</h3>
+	The database of keys is kept in a database beloging to the browser. Some clean-up operations undertaken by for example cookie-wiping utilities can also remove this database. It is therefore desirable to have all the keys be backedup. This prosedure creates a JSON text file contaning all encryption and decryption key.
+	
+			<form class="backup-all-keys" >
+				<button class="backup-all-keys">backup key database</button>
+			</form>
+
+	<h3>Import keys</h3>
+		
+			<input id="contentFile" type="file" accept="application/json" />
+	
+				
+
 					<script type="module" src="navigate-collection.js"></script>
 				</body>
 			</html>
