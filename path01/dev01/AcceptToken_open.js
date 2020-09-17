@@ -1,4 +1,6 @@
 
+// test update from branch readme-edit-from-branch
+
 console.log("pageWriterAcceptToken_open:");
 try {
     browser.runtime.onMessage.removeListener();
