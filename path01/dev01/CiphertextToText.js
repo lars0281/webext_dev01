@@ -234,7 +234,6 @@ function ciphertextToText(request, sender, sendResponse) {
         console.log("no replacement text provided.");
 
     }
-
 }
 
 browser.runtime.onMessage.addListener(ciphertextToText);

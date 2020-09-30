@@ -167,3 +167,4 @@ function ciphertextToHTML(request, sender, sendResponse) {
 }
 
 browser.runtime.onMessage.addListener(ciphertextToHTML);
+

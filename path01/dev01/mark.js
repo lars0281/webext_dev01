@@ -65,7 +65,7 @@
     return _extends.apply(this, arguments);
   }
 
-  var DOMIterator =
+var DOMIterator =
   /*#__PURE__*/
   function () {
     function DOMIterator(ctx) {

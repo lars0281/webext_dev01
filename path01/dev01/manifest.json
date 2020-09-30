@@ -39,10 +39,13 @@
 		],
 		"default_title": "Glovebox keys"
 	},
+	
+
+	
 	"content_scripts": [
 		{
 			"matches": ["<all_urls>"],
-			"js": [ "./emojiMap.js", "./glovebox_highlights.js", "./background.js"]
+			"js": ["./tokenMap.js", "mark_tokens.js", "./ctx_menu/ctx_menu_main.js", "./background.js" ]
 		}
 	],
 	"permissions": [
@@ -51,6 +54,10 @@
 		"activeTab",
 		"tabs",
 		"contextMenus",
+		"menus",
+		"menus.overrideContext",
+		"notifications",
+		
 		"clipboardWrite",
 		"storage",
 		"unlimitedStorage",
