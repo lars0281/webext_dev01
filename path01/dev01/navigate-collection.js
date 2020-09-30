@@ -1,6 +1,6 @@
 /* global loadStoredImages, removeStoredImages, saveToIndexedDB */
 
-import * as utils_functions from '/utils/functions.js';
+// cd /cygdrive/c/users/lars_/git/repository01/path01/dev01
 
 "use strict";
 
@@ -183,13 +183,42 @@ class NavigateCollectionUI {
         //document.querySelector("button.generate-encryption-key").onclick = this.generateEncryptionKey;
         // use this instead - which causes a page reload. This to show the newly created key immediately.
         document.querySelector("button.generate-encryption-key").addEventListener('click', function () {
-            generate_encryption_key();
+            console.log("button.generate-encryption-key.Begin");
+            //make sure of
+            //const call2Promise= generate_encryption_key_2();
+            //Promise.all([call2Promise]);
+
+            
+            // Get default signing key
+            // If there is on presente, use it, otherwise create one. 
+            
+            
+            // call to backgroup.js to create a new encryption key
+            browser.runtime.sendMessage({request:"generate_encryption_key"},function(response){
+            	console.log("message sent to backgroup.js with response: " + JSON.stringify(response));
+
+			});
+            
+browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
+	console.log("response received from background.js");
+	console.log("message: " + message);
+	console.log("sender: " + sender);
+	console.log("sendResponse: " + sendResponse);
+	str = JSON.stringify(message.data);
+	console.log(str);
+});
+
+
+            console.log("button.generate-encryption-key.Completed");
+
         });
 
         document.querySelector("button.generate-private-key").addEventListener('click', function () {
-            console.log("### generate_private_key");
+            console.log("### generate_private_key.being");
 
             generate_privatepublickey();
+            console.log("### generate_private_key.end");
+
         });
 
         document.querySelector("button.backup-all-keys").addEventListener('click', function () {
@@ -1454,7 +1483,7 @@ class NavigateCollectionUI {
     generateEncryptionKey() {
         console.log("navigate-collection.js: generateEncryptionKey");
 
-        generate_encryption_key();
+        generate_encryption_key_2();
 
     }
 
@@ -1737,21 +1766,21 @@ function submitDeleteEncryptionKey(e) {
 function deletePrivateKey(u) {
     console.log("navigate-collection.js: deletePrivateKey" + u);
 
-    utils_functions.deleteFromIndexedDB('privateKeys', 'keyPairs', u);
+    deleteFromIndexedDB('privateKeys', 'keyPairs', u);
 
 }
 
 function deleteEncryptionKey(u) {
     console.log("navigate-collection.js: deleteEncryptionKey" + u);
 
-    utils_functions.deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', u);
+    deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', u);
 
 }
 
 function deleteDecryptionKey(u) {
     console.log("navigate-collection.js: deleteDecryptionKey" + u);
 
-    utils_functions.deleteFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', u);
+    deleteFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', u);
 
 }
 
@@ -1771,7 +1800,7 @@ function exportEncryptionKey(keyId) {
 
     console.log("navigate-collection.js: exportEncryptionKey keyId:" + keyId);
 
-    utils_functions.loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", keyId).then(function (obj) {
+    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", keyId).then(function (obj) {
 
         console.log("navigate-collection.js: exportEncryptionKey object:" + JSON.stringify(obj));
         // present a popup window
@@ -1791,7 +1820,7 @@ function exportEncryptionKey(keyId) {
         // Glovebox keytoken open sample:":Clovebox:username01@domain.org:asasd-bb-erw-w45gvs-5asd:fsdawwefwrwtgRgevWefsfsetg3563rgvegreRErgvE==:"
 
 
-        //var enc_base = utils_functions.arrayBufferToBase64(keyId);
+        //var enc_base = arrayBufferToBase64(keyId);
         var glovebox_key_token_openform = '';
         console.log("navigate-collection.js: exportEncryptionKey object:1" + glovebox_key_token_openform);
 
@@ -1831,7 +1860,7 @@ function updateEncryptionKey(uuid) {
     // objectStore:"encryptionKeys"
     // get data from database
 
-    utils_functions.loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (obj) {
+    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (obj) {
 
         console.log("navigate-collection.js: updateEncryptionKey read from db:" + obj);
         console.log("navigate-collection.js: updateEncryptionKey read from db:" + JSON.stringify(obj));
@@ -1880,7 +1909,7 @@ function updateDecryptionKey(uuid) {
     // objectStore:"encryptionKeys"
     // get data from database
 
-    utils_functions.loadFromIndexedDB_async("trustedDecryptionKeys", "decryptionKeys", uuid).then(function (obj) {
+    loadFromIndexedDB_async("trustedDecryptionKeys", "decryptionKeys", uuid).then(function (obj) {
 
         console.log("navigate-collection.js: updateDecryptionKey read from db:" + obj);
         //    console.log("navigate-collection.js: updateDecryptionKey read from db:"+ JSON.stringify(obj));
@@ -1930,12 +1959,12 @@ function makeDefaultEncryptionKey(uuid) {
     // get the existing default key and give it a new keyId
 
 
-    //    utils_functions.loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey').then(function (currentdefaultkey) {
+    //    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey').then(function (currentdefaultkey) {
     //        console.log("navigate-collection.js: makeDefaultEncryptionKey read default from db:" + currentdefaultkey);
     //        console.log("navigate-collection.js: makeDefaultEncryptionKey read default from db:" + JSON.stringify(currentdefaultkey));
     //        // make the UUID of the object the new keyId
     //        currentdefaultkey.keyId = currentdefaultkey.uuid;
-    //        utils_functions.saveToIndexedDB('encryptionKeys', 'encryptionKeys', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
+    //        saveToIndexedDB('encryptionKeys', 'encryptionKeys', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
     //            console.log("navigate-collection.js: makeDefaultEncryptionKey save to db:" + response);
     //        });
     //    });
@@ -1943,9 +1972,9 @@ function makeDefaultEncryptionKey(uuid) {
     // read out the key from the database
     var obj;
 
-    utils_functions.loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (o) {
+    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (o) {
         obj = o;
-        return utils_functions.deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey');
+        return deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey');
     }).then(function (res) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey read from res:" + res);
         console.log("navigate-collection.js: makeDefaultEncryptionKey read from db:" + obj);
@@ -1959,7 +1988,7 @@ function makeDefaultEncryptionKey(uuid) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey write:" + JSON.stringify(obj));
 
         // and save it back in on the defaultkey id
-        return utils_functions.saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey', obj);
+        return saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey', obj);
     }).then(function (response) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey save to db:" + response);
     });
@@ -1973,12 +2002,12 @@ function makeDefaultPrivateKey(uuid) {
     // get the existing default key and give it a new keyId
 
 
-    //    utils_functions.loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey').then(function (currentdefaultkey) {
+    //    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey').then(function (currentdefaultkey) {
     //        console.log("navigate-collection.js: makeDefaultPrivateKey read default from db:" + currentdefaultkey);
     //        console.log("navigate-collection.js: makeDefaultPrivateKey read default from db:" + JSON.stringify(currentdefaultkey));
     //        // make the UUID of the object the new keyId
     //        currentdefaultkey.keyId = currentdefaultkey.uuid;
-    //        utils_functions.saveToIndexedDB('encryptionKeys', 'encryptionKeys', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
+    //        saveToIndexedDB('encryptionKeys', 'encryptionKeys', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
     //            console.log("navigate-collection.js: makeDefaultPrivateKey save to db:" + response);
     //        });
     //    });
@@ -1986,9 +2015,9 @@ function makeDefaultPrivateKey(uuid) {
     // read out the key from the database
     var obj;
 
-    utils_functions.loadFromIndexedDB_async("privateKeys", "keyPairs", uuid).then(function (o) {
+    loadFromIndexedDB_async("privateKeys", "keyPairs", uuid).then(function (o) {
         obj = o;
-        return utils_functions.deleteFromIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey');
+        return deleteFromIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey');
 
     }).then(function (res) {
         console.log("navigate-collection.js: makeDefaultPrivateKey read from res:" + res);
@@ -2003,14 +2032,14 @@ function makeDefaultPrivateKey(uuid) {
         console.log("navigate-collection.js: makeDefaultPrivateKey write:" + JSON.stringify(obj));
 
         // and save it back in on the defaultkey id
-        return utils_functions.saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
+        return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
     }).catch(function (err) {
         console.log("background.js: makeDefaultPrivateKey:err=\"" + err + "\"");
         // if the error is that the defaul is no set. proceed with setting it.
         if (err == "TypeError: obj is undefined") {
             console.log("na1");
             // read out the key and write it to the default key.
-            return utils_functions.saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
+            return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
 
         } else {
             console.log("na2");
@@ -2098,7 +2127,7 @@ function getTabDocument(result) {
             console.log('adding key with username=' + token_username_value + ' uuid:' + token_uuid_value + ' and key =' + token_key_value);
 
             console.log('adding key: ' + JSON.stringify(newItem));
-            utils_functions.saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', token_uuid_value, newItem).then(function (response) {
+            saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', token_uuid_value, newItem).then(function (response) {
                 console.log("navigate-collection.js: added new decryption key to db:" + response);
 
             });
@@ -2138,7 +2167,7 @@ async function import_all_keys(json_all_records) {
         // start the import
 
 
-        utils_functions.saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', obj.uuid, obj).then(function (response) {
+        saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', obj.uuid, obj).then(function (response) {
             console.log('trusted key saved');
         }).catch(function (error) {
             console.log(error.message);
@@ -2154,7 +2183,7 @@ async function import_all_keys(json_all_records) {
         // start the import
 
 
-        utils_functions.saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', obj.uuid, obj).then(function (response) {
+        saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', obj.uuid, obj).then(function (response) {
             console.log('encryption key saved');
         }).catch(function (error) {
             console.log(error.message);
@@ -2244,6 +2273,89 @@ function download_file(name, contents, mime_type) {
     dlink.remove();
 }
 
+async function get_default_signing_key_2() {
+    console.log("get_default_signing_key_2:start");
+
+    // This function returns a JSON structure contaning a public and private key suitable for digital signing and signature validation.
+    // ( and also a keypai suitable for RSA encryption/dekryption)
+    // If not such default key has been set, one is created and insterted into the database.
+    // If a new key is created, it is inserted both under it's own unique identifier, as well as under the default identifier.
+
+    // The function returns a Promise, which resolves to the key.
+
+    var defaultSigningKey;
+    var defaultSigningKey2;
+    // look for default signing RSA key
+    var newItem;
+    var newItem2;
+
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+    var testkeypairobj;
+    var uuid;
+
+    let promises = [];
+    promises[0] = (loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey'));
+    defaultSigningKey = await Promise.all(promises);
+
+    console.log('###### get default key ' + defaultSigningKey);
+
+    promises[0] = (window.crypto.subtle.generateKey({
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["sign", "verify"]));
+    testkeypairobj = await Promise.all(promises);
+
+    console.log('###### testkeypairobj ' + testkeypairobj);
+
+    var d;
+    d = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    console.log(d);
+    console.log(typeof d);
+    if (typeof d == "undefined") {
+        console.log("no default signing priv key..");
+        // make call to create one
+
+        var a;
+        a = await window.crypto.subtle.generateKey({
+                name: "RSASSA-PKCS1-v1_5",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-1"
+                },
+            },
+                true,
+                ["sign", "verify"]);
+        console.log("#### 2");
+
+        console.log(a);
+        console.log(typeof a);
+        var b;
+        b = await window.crypto.subtle.exportKey("jwk", a.publicKey);
+        console.log(b);
+        console.log(typeof b);
+        console.log("#### 3");
+
+        var c;
+        c = await window.crypto.subtle.exportKey("jwk", a.publicKey);
+        console.log(c);
+        console.log(typeof c);
+        console.log("#### 4");
+
+    }
+    console.log("#### 5");
+    return d;
+}
+
 async function get_default_signing_key() {
     console.log("get_default_signing_key:start");
 
@@ -2255,120 +2367,298 @@ async function get_default_signing_key() {
     // The function returns a Promise, which resolves to the key.
 
     var defaultSigningKey;
+    var defaultSigningKey2;
     // look for default signing RSA key
     var newItem;
+    var newItem2;
+
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+    var testkeypairobj;
     var uuid;
-    new Promise(
-        function (resolve, reject) {
-        //console.log("see: " + utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey') );
 
-        defaultSigningKey = utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    var d;
+    d = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    console.log(d);
+    console.log(typeof d);
+    if (typeof d == "undefined") {
+        console.log("no default signing priv key..");
+        // make call to create one
 
-        console.log("###");
-        console.log(defaultSigningKey);
+        var a;
+        a = await window.crypto.subtle.generateKey({
+                name: "RSASSA-PKCS1-v1_5",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-1"
+                },
+            },
+                true,
+                ["sign", "verify"]);
+        console.log("#### 2");
 
-        try {
-            utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey').then(function (bb) {
+        console.log(a);
+        console.log(typeof a);
+        var b;
+        b = await window.crypto.subtle.exportKey("jwk", a.publicKey);
+        console.log(b);
+        console.log(typeof b);
+        console.log("#### 3");
 
-                console.log("############## 2" + bb);
-                console.log("2");
-                console.log(a);
-                if (!response.ok) {
-                    console.log("get_default_signing_key:3");
+        var c;
+        c = await window.crypto.subtle.exportKey("jwk", a.publicKey);
+        console.log(c);
+        console.log(typeof c);
+        console.log("#### 4");
 
-                } else {
-                    console.log("4");
+    }
+    console.log("#### 5");
+    return d;
+}
 
-                }
+async function generate_signingkey_obj() {
+    console.log("generate_signingkey_obj");
 
-            });
-        } catch (e) {
-           console.log("######################"+e);
-            reject("GG");
+    var uuid;
+    var testkeypairobj;
+    var testprivkey;
+    var testpubkey;
+    var newItem;
+    // create key pair
+    console.log("1");
+    var key;
+    var publicKeyJwk;
+    var testkeypairobj;
+
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+
+    var sign_key_obj;
+    console.log("2.0");
+    try {
+        console.log("2.0.1");
+        sign_key_obj = await window.crypto.subtle.generateKey({
+                name: "RSASSA-PKCS1-v1_5",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-1"
+                },
+            },
+                true,
+                ["sign", "verify"]);
+        console.log("2.0.2");
+
+    } catch (e) {
+        console.log("2.0.4");
+        console.log(e);
+    }
+    console.log("2.0.5");
+    console.log(sign_key_obj);
+
+    return sign_key_obj;
+}
+
+// return the JWK of the default signing key
+function get_default_signingkey_jwk() {
+    console.log("navigate-collection.js: get_default_signingkey_jwk.begin");
+    var signing_key_jwk;
+
+    var default_signingkey_found;
+    var default_signingkey_created;
+    var default_encryptedkey_found;
+    var default_encryptedkey_created;
+
+    // look for default signing key in the database first, and use this if found
+
+    loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey')
+    .then(function (key) {
+        // check if key was found and set flag accordingly
+        console.log(key + ' fetched!');
+        //    defaultSigningKeyFound = false;
+        console.log(key);
+        console.log(typeof key);
+        if (typeof key == "undefined") {
+            console.log("no key found");
+        } else {
+            console.log("default key found");
+            return 2;
         }
+    }).then(function (a) {
+        console.log(a);
 
-        utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey').then(function (currentdefaultkey) {
+        return signing_key_jwk;
 
-            console.log("get_default_signing_key:found=" + currentdefaultkey);
-            console.log("get_default_signing_key:found=" + typeof currentdefaultkey);
-            console.log("get_default_signing_key:found=" + JSON.stringify(currentdefaultkey));
-            if (typeof currentdefaultkey == "undefined") {
-                console.log("get_default_signing_key: NOT FOUND - create new.");
+    }).catch(function (e) {
+        console.log("a");
 
-                var default_signkey;
-                generate_privatepublickey().then(function (k) {
-                    default_signkey = k;
-                    console.log("default_signkey: " + default_signkey);
-                    console.log(default_signkey);
+        return signing_key_jwk;
 
-                });
-            } else {
-                console.log("get_default_signing_key: FOUND OK");
-
-            }
-
-        }).catch(function (err) {
-            console.log("get_default_signing_key:err=\"" + err + "\"");
-            // error
-            // if error was "object not found" assume no defaultencryptionkey not set, so create and set it now.
-            newItem = {
-                keyId: "uuid",
-                uuid: "uuid"
-
-            };
-
-            if (err == "object not found") {
-                console.log("background.js: defaultkey not found, create a new one and assign this key as it");
-                // make a new default signing key
-                let k = generate_privatepublickey().then(function (key) {
-                        console.log(key);
-
-                        console.log("key: " + JSON.stringify(key));
-                    });
-                console.log('new key: ' + k);
-
-                //        console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
-                newItem.keyId = 'defaultSecretKey';
-                console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
-
-                // utils_functions.saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem);
-
-
-            } else if (err == "Error: objectstore_error") {
-                console.log("background.js: respond to objectstore error");
-            }
-
-            console.log("get_default_signing_key:end");
-            var newitem2;
-
-            newItem = {
-                keyId: "uuid",
-                uuid: "uuid"
-
-            };
-        });
-        reject("newitem");
-
-        console.log("get_default_signing_key:end2");
-    }).then(function (f) {
-        console.log("f");
-        console.log(f);
-
-        return generate_privatepublickey();
-
-    }).then(function (g) {
-        console.log("g");
-        console.log(g);
-
-        return defaultSigningKey;
     });
 
-    console.log("get_default_signing_key:end3");
+    // depending on whether or not a key was returned, create a new one
+
+
+    console.log("navigate-collection.js: get_default_signingkey_jwk.end");
+}
+
+//
+async function generate_signingkey_jwk() {
+    console.log("generate_signingkey_jwk");
+
+    var uuid;
+    var testkeypairobj;
+    var testprivkey;
+    var testpubkey;
+    var newItem;
+    // create key pair
+    console.log("1");
+    var key;
+    var publicKeyJwk;
+    var testkeypairobj;
+
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+
+    var newItem;
+    var algoKeyGen = {
+        name: 'AES-GCM',
+        //          length: 256
+        length: 128
+    };
+
+    console.log('navigate-collection.js:algoKeyGen: ' + JSON.stringify(algoKeyGen));
+
+    var keyUsages = [
+        'encrypt',
+        'decrypt'
+    ];
+    var sign_key_obj;
+    console.log("2.0");
+    sign_key_obj = await window.crypto.subtle.generateKey({
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["sign", "verify"]);
+    console.log(sign_key_obj);
+
+    console.log("2.1");
+    console.log("2.2");
+    sign_pubkey = await window.crypto.subtle.exportKey("jwk", sign_key_obj.publicKey);
+    console.log(sign_pubkey);
+    console.log("2.3");
+    sign_privkey = await window.crypto.subtle.exportKey("jwk", sign_key_obj.privateKey);
+    console.log(sign_privkey);
+    console.log("2.4");
+
+    //generates random id;
+    let guid = () => {
+        let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+        }
+        //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
+
+    uuid = guid();
+
+    //      newItem = {
+    //          keyId: uuid,
+    //          uuid: uuid,
+    //          "key": expkey.k,
+    //          "jwk": expkey,
+    //          "ext": true
+    //       };
+    newItem = {
+        "keyId": uuid,
+        "uuid": uuid,
+        "encryption_publicKey": enc_pubkey,
+        "encryption_privateKey": enc_privkey,
+        "signature_publicKeyJWK": sign_pubkey,
+        "signature_privateKeyJWK": sign_privkey,
+
+    };
+
+    console.log('newItem: ' + JSON.stringify(newItem));
+    return newItem;
 }
 
 // generaye a public-private keypair
 // put it in the database
 
+async function generate_privatepublickey_2_jwk() {
+    console.log("generate_privatepublickey_2_jwk");
+    const one = await generate_privatepublickey();
+
+    console.log(one);
+    console.log("generate_privatepublickey_2_jwk.fin");
+}
+generate_privatepublickey_3_jwk
+
+async function generate_privatepublickey_3_jwk() {
+    console.log("generate_privatepublickey_3_jwk.begin");
+    var testkeypairobj;
+    var testprivkey;
+    var testpubkey;
+    var one;
+    window.crypto.subtle.generateKey({
+        name: "RSA-OAEP",
+        modulusLength: 1024,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: {
+            name: "SHA-256"
+        }
+    },
+        true,
+        ["encrypt", "decrypt"]).then(function (key) {
+        console.log("1");
+        testkeypairobj = key;
+        return window.crypto.subtle.exportKey("jwk", testkeypairobj.publicKey);
+    }).catch(function (err) {
+        console.log("HEY!: " + err.message);
+    }).then(function (key_pub) {
+        testpubkey = key_pub;
+        console.log(key_pub);
+        console.log(JSON.stringify(key_pub));
+
+        return window.crypto.subtle.exportKey("jwk", testkeypairobj.privateKey);
+    }).catch(function (err) {
+        console.log("HEY!: " + err.message);
+    }).then(function (key_priv) {
+        testprivkey = key_priv;
+        console.log(key_priv);
+        console.log("privkey: " + JSON.stringify(key_priv));
+
+        var obj = {
+            RSASSAPKCS1v1_5_privateKey: testpubkey
+        };
+
+        console.log("obj: " + JSON.stringify(obj));
+
+        console.log("generate_privatepublickey_3_jwk:fin.1");
+        return obj;
+    }).catch(function (err) {
+        console.log("HEY!: " + err.message);
+
+    });
+
+    console.log(one);
+    console.log("generate_privatepublickey_3_jwk:fin.2");
+}
 
 async function generate_privatepublickey() {
     console.log("generate_privatepublickey");
@@ -2402,12 +2692,9 @@ async function generate_privatepublickey() {
         'encrypt',
         'decrypt'
     ];
-
-    return new Promise(
-        function (resolve, reject) {
-        console.log("2");
-        // generate a public-private keypair suitable for ditigal signatures
-        window.crypto.subtle.generateKey({
+    var sign_key_obj;
+    console.log("2.0");
+    sign_key_obj = await window.crypto.subtle.generateKey({
             name: "RSASSA-PKCS1-v1_5",
             modulusLength: 1024,
             publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
@@ -2416,186 +2703,88 @@ async function generate_privatepublickey() {
             },
         },
             true,
-            ["sign", "verify"]).then(function (key) {
-            // secretKey = key;
-            testkeypairobj = key;
-            console.log('navigate-collection.js:generate_encryption_key');
-            // make key into exportable form
-            return window.crypto.subtle.exportKey("jwk", testkeypairobj.publicKey);
-        }).then(function (expkey) {
-            console.log("2");
-            sign_pubkey = expkey;
-            console.log('navigate-collection.js: expkey: ' + JSON.stringify(expkey));
+            ["sign", "verify"]);
+    console.log(sign_key_obj);
 
-            console.log("22");
-            return window.crypto.subtle.exportKey("jwk", testkeypairobj.privateKey);
-        }).then(function (c) {
-            console.log("3");
-            sign_privkey = c;
+    console.log("2.1");
+    console.log("2.2");
+    sign_pubkey = await window.crypto.subtle.exportKey("jwk", sign_key_obj.publicKey);
+    console.log(sign_pubkey);
+    console.log("2.3");
+    sign_privkey = await window.crypto.subtle.exportKey("jwk", sign_key_obj.privateKey);
+    console.log(sign_privkey);
+    console.log("2.4");
 
-            // generate key for RSA encryption
-            return window.crypto.subtle.generateKey({
-                name: "RSA-OAEP",
-                modulusLength: 1024,
-                publicExponent: new Uint8Array([1, 0, 1]),
-                hash: {
-                    name: "SHA-256"
-                }
-            },
-                true,
-                ["encrypt", "decrypt"]);
+    //generates random id;
+    let guid = () => {
+        let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+        }
+        //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
 
-        }).then(function (key) {
-            console.log("generate_privatepublickey 11");
-            testkeypairobj = key;
+    uuid = guid();
 
-            // make key into exportable form
-            return window.crypto.subtle.exportKey("jwk", testkeypairobj.publicKey);
-        }).then(function (expkey) {
-            console.log("generate_privatepublickey 211");
-            enc_pubkey = expkey;
+    //      newItem = {
+    //          keyId: uuid,
+    //          uuid: uuid,
+    //          "key": expkey.k,
+    //          "jwk": expkey,
+    //          "ext": true
+    //       };
+    newItem = {
+        "keyId": uuid,
+        "uuid": uuid,
+        "encryption_publicKey": enc_pubkey,
+        "encryption_privateKey": enc_privkey,
+        "signature_publicKeyJWK": sign_pubkey,
+        "signature_privateKeyJWK": sign_privkey,
 
-            return window.crypto.subtle.exportKey("jwk", testkeypairobj.privateKey);
-        }).then(function (enc_p) {
-            console.log("311");
-            enc_privkey = enc_p;
+    };
 
-            //generates random id;
-            let guid = () => {
-                let s4 = () => {
-                    return Math.floor((1 + Math.random()) * 0x10000)
-                    .toString(16)
-                    .substring(1);
-                }
-                //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
-                return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    console.log('newItem: ' + JSON.stringify(newItem));
+
+//    return newItem;
+
+    var crypt_key_obj;
+    crypt_key_obj = await window.crypto.subtle.generateKey({
+            name: "RSA-OAEP",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: {
+                name: "SHA-256"
             }
+        },
+            true,
+            ["encrypt", "decrypt"]);
+    console.log(crypt_key_obj);
+    console.log("3.2");
 
-            uuid = guid();
+    enc_pubkey = window.crypto.subtle.exportKey("jwk", crypt_key_obj.publicKey);
+    console.log(enc_pubkey);
+    console.log("3.3");
+    enc_privkey = window.crypto.subtle.exportKey("jwk", crypt_key_obj.privateKey);
+    console.log(enc_privkey);
+    console.log("3.4");
 
-            //      newItem = {
-            //          keyId: uuid,
-            //          uuid: uuid,
-            //          "key": expkey.k,
-            //          "jwk": expkey,
-            //          "ext": true
-            //       };
-            newItem = {
-                "keyId": uuid,
-                "uuid": uuid,
-                "encryption_publicKey": enc_pubkey,
-                "encryption_privateKey": enc_privkey,
-                "signature_publicKeyJWK": sign_pubkey,
-                "signature_privateKeyJWK": sign_privkey,
+    newItem = {
+        "keyId": uuid,
+        "uuid": uuid,
+        "encryption_publicKey": enc_pubkey,
+        "encryption_privateKey": enc_privkey,
+        "signature_publicKeyJWK": sign_pubkey,
+        "signature_privateKeyJWK": sign_privkey,
 
-            };
-            // put key into encryption key store
+    };
 
-            console.log('data to be saved: ' + JSON.stringify(newItem));
-            //  '{"keyId":"one","uuid":"two"}'
-            utils_functions.saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem).then(function (response) {
-                console.log('data saved');
-            }).catch(function (error) {
-                console.log(error.message);
-            });
+    console.log('newItem: ' + JSON.stringify(newItem));
 
-            utils_functions.saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
-                console.log('data saved');
-            }).catch(function (error) {
-                console.log(error.message);
-            });
+    // bypass the remainder
+    return newItem;
 
-        }).then(function (key) {
-            // check if there is a default encryption key (and if not, make this the default key.)
-            console.log('consider as possible new default key: ' + JSON.stringify(newItem));
-
-            return utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultSecretKey');
-
-        }).then(function (currentdefaultkey) {
-
-            console.log("background.js: getDefaultSecretKey:found=" + currentdefaultkey);
-            console.log("background.js: getDefaultSecretKey:found=" + JSON.stringify(currentdefaultkey));
-
-        }).catch(function (err) {
-            console.log("background.js: getDefaultSecretKey:err=\"" + err + "\"");
-            // error
-            // if error was "object not found" asume defaultencryptionkey not set, so set it now.
-
-            if (err == "Error: object not found") {
-                console.log("background.js: defaultkey not found, assign this key as it");
-                // make a new default encryption key
-
-                //        console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
-                newItem.keyId = 'defaultSecretKey';
-                console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
-
-                utils_functions.saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem);
-
-            }
-            if (err == "Error: objectstore_error") {
-                console.log("background.js: respond to objectstore error");
-
-                var request4 = indexedDB.open("privateKeys", 1);
-                request4.onupgradeneeded = function (event) {
-                    db = event.target.result;
-                    db.onerror = function (event) {};
-                    // Create an objectStore in this database to keep trusted decryption keys
-                    console.log("background.js: getDefaultSecretKey: create objectstore keyPairs in privateKeys");
-                    console.log("background.js: attempt to create objectstore");
-                    var objectStore2 = db.createObjectStore("keyPairs", {
-                            keyPath: "keyId"
-                        });
-
-                    objectStore2.createIndex("keyId", "keyId", {
-                        unique: true
-                    });
-                    console.log("background.js: attempt to create objectstore");
-
-                };
-                console.log("background.js: 4" + request4);
-                console.log("background.js: 4" + JSON.stringify(request4));
-
-                request4.onerror = function (event) {
-                    console.log("background.js:getDefaultSecretKey: dp open request error 201");
-                };
-                console.log("background.js: 5");
-                request4.onsuccess = function (event) {
-                    console.log("background.js: 6" + event);
-                    var db_1;
-                    db_1 = event.target.result;
-                    console.log("background.js: 7" + db_1);
-                    db_1.onerror = function (event) {
-                        console.log("background.js:getDefaultSecretKey: db open request error 2");
-                    };
-                    //   db_1.onsuccess = function (event) {
-                    console.log("background.js:getDefaultSecretKey: db open request success 2");
-
-                    console.log("background.js: attempt to create objectstore");
-                    var objectStore2 = db_1.createObjectStore("keyPairs", {
-                            keyPath: "keyId"
-                        });
-
-                    objectStore2.createIndex("keyId", "keyId", {
-                        unique: true
-                    });
-                    console.log("background.js: attempt to create objectstore");
-
-                    console.log("create new default key");
-                    //        makeNewDefaultEncryptionKey().then(function (res) {
-                    //            console.log("created new default key result:" + res);
-                    //             resolve(res);
-                    //   });
-
-                    //  };
-                };
-
-            }
-
-        });
-
-        resolve(newItem);
-
-    });
 }
 
 async function generate_private_key() {
@@ -2684,7 +2873,7 @@ async function generate_private_key() {
 
     console.log("obj: " + JSON.stringify(obj));
 
-    utils_functions.generateRSAKeyPair().then(function (a) {
+    generateRSAKeyPair().then(function (a) {
         //  console.log(a);
         console.log("a: " + JSON.stringify(a));
 
@@ -2710,13 +2899,13 @@ async function generate_private_key() {
         //        newItem.keyId = 'defaultPrivateKey';
         console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
 
-        utils_functions.saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem);
+        saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem);
 
         // check if there is a default key present, if not save this as the default key too.
 
         console.log("look for default private key");
 
-        //return utils_functions.loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+        //return loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
 
     }).then(function (currentdefaultkey) {
 
@@ -2739,6 +2928,550 @@ async function generate_private_key() {
 // Create a new encryption key and place it both in the encryption and decryption key databases
 // Check if there is a default key in palce, and if not, make this key the default encryption key too.
 
+
+function generate_encryption_key_4() {
+    console.log("navigate-collection.js: generate_encryption_key_4.begin");
+
+    // get default private key
+
+    var signing_key_jwk;
+    var encryption_key_jwk;
+
+    var signing_key_obj;
+    var encryption_key_obj;
+
+    var defaultEncryptionKeyId;
+    var privateKeyJwk;
+    var uuid;
+    var offeredKeyId;
+
+    var signatureStr;
+    var publicKeyJwk;
+
+    var default_signingkey_found;
+    var default_signingkey_created;
+    var default_encryptedkey_found;
+    var default_encryptedkey_created;
+
+    // look for default signing key in the database first, and use this if found
+
+    var key;
+    key = loadFromIndexedDB_nonpromise("privateKeys", "keyPairs", 'defaultPrivateKey');
+
+    console.log(key);
+    console.log(typeof key);
+    if (typeof key == "undefined") {
+        console.log("default signing key not found");
+
+    } else {
+        console.log("a default signing key was found");
+
+    }
+
+    window.crypto.subtle.generateKey({
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 1024,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: {
+            name: "SHA-1"
+        },
+    },
+        true,
+        ["sign", "verify"]).
+    then(function (a) {
+        console.log("1");
+        console.log(a);
+        console.log(a.publicKey);
+        signing_key_obj = a;
+        return window.crypto.subtle.exportKey("jwk", a.publicKey);
+    }).then(function (b) {
+        console.log("21");
+        publicKeyJwk = b;
+        return 0;
+    }).catch(function (err) {
+        console.log("HEY!: " + err.message);
+    }).then(function (c) {
+        console.log(c);
+        console.log("should have signing key at this point");
+        console.log(signing_key_obj);
+        return loadFromIndexedDB_nonpromise("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
+      
+    }).then(function (d) {
+        console.log(d);
+        console.log(typeof d);
+        // was a default encryption key found ?
+
+
+        return "notfound";
+        //	 if (typeof d == "undefined"){
+        //		 console.log("default encryption key not found");
+        //return 0;
+        //	 }else{
+        //		 console.log("a default encryption key was found");
+        //return 1;
+        //	 }
+
+
+    }).then(function (e) {
+        console.log(e);
+        console.log(typeof e);
+        var algoKeyGen = {
+            name: 'AES-GCM',
+            //          length: 256
+            length: 128
+        };
+        var keyUsages = [
+            'encrypt',
+            'decrypt'
+        ];
+
+        if (typeof e == "string") {
+            // no def. key found
+            console.log("create new encryption key");
+
+            return window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages);
+        } else {
+            return window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages);
+        	
+        }
+
+    }).then(function (f) {
+        console.log(f);
+        console.log(typeof f);
+
+    });
+
+    // if new keys were created earlier, save them in the database now
+
+
+    //var key = generate_private_key();
+
+
+    console.log("navigate-collection.js: generate_encryption_key_4.end");
+
+}
+
+async function generate_encryption_key_3() {
+    console.log("navigate-collection.js: generate_encryption_key_3");
+
+    var one;
+    one = await generate_privatepublickey_2_jwk();
+
+    console.log("23");
+
+    // create a sequence of promises
+    var sequence = Promise.resolve();
+    var defaultSigningKeyFound = false;
+
+    // add database lookup for default signing key
+    sequence = sequence.then(function () {
+            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' fetched!')
+            //    defaultSigningKeyFound = false;
+        }).catch(function (err) {
+            console.log(err + ' failed to load!')
+            //    defaultSigningKeyFound = false;
+        })
+
+        sequence = sequence.then(function () {
+            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' fetched!')
+            //    defaultSigningKeyFound = false;
+        }).catch(function (err) {
+            console.log(err + ' failed to load!')
+            //    defaultSigningKeyFound = false;
+        })
+
+        sequence = sequence.then(function () {
+            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' fetched!')
+            //    defaultSigningKeyFound = false;
+        }).catch(function (err) {
+            console.log(err + ' failed to load!')
+            //    defaultSigningKeyFound = false;
+        })
+
+        sequence = sequence.then(function () {
+            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' fetched - NOT!')
+            //    defaultSigningKeyFound = false;
+        }).catch(function (err) {
+            console.log(err + ' failed to load!')
+            //    defaultSigningKeyFound = false;
+        })
+
+        // add signing key create with conditional on no default key having been found
+
+        sequence = sequence.then(function () {
+            return window.crypto.subtle.generateKey({
+                name: "RSASSA-PKCS1-v1_5",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-1"
+                },
+            },
+                true,
+                ["sign", "verify"])
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' created!');
+            console.log(url);
+        }).catch(function (err) {
+            console.log(err + ' failed to create!')
+        })
+
+        sequence = sequence.then(function () {
+            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' fetched - NOT!')
+            //    defaultSigningKeyFound = false;
+        }).catch(function (err) {
+            console.log(err + ' failed to load!')
+            //    defaultSigningKeyFound = false;
+        })
+
+        // add signing key public key export with conditional of sining key being create
+
+        sequence = sequence.then(function () {
+            return window.crypto.subtle.generateKey({
+                name: "RSASSA-PKCS1-v1_5",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-1"
+                },
+            },
+                true,
+                ["sign", "verify"]);
+        }).then(function (url) {
+            // check if key was found and set flag accordingly
+            console.log(url + ' created!')
+            console.log(url)
+        }).catch(function (err) {
+            console.log(err + ' failed to create!')
+        })
+
+        console.log("99");
+   // return "";
+
+    // run promise sequence
+
+
+    var one = await loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey');
+    var signing_key_obj;
+    var signing_key_jwk;
+
+    console.log("four");
+    console.log(one);
+
+    var privatekey_uuid;
+    var newItem;
+
+    // flag to mark whether or not a new RSA key was created for signing and which should be made the default signing key
+    var createdNewSigningKey = false;
+
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+    var testkeypairobj;
+    var algoKeyGen = {
+        name: 'AES-GCM',
+        //          length: 256
+        length: 128
+    };
+
+    console.log('navigate-collection.js:algoKeyGen: ' + JSON.stringify(algoKeyGen));
+
+    var keyUsages = [
+        'encrypt',
+        'decrypt'
+    ];
+
+    //generates random id;
+    let guid = () => {
+        console.log("#### 7");
+        let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+        }
+        console.log("#### 8");
+        //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+
+    }
+    console.log("#### 10");
+    privatekey_uuid = guid();
+
+    console.log("9");
+    // creation of RSA signing key
+
+    //try{
+
+    signing_key_obj = await generate_privatepublickey_2_jwk();
+    //    	signing_key_jwk = await generateRSAKeyPair();
+
+    //	createdNewSigningKey = true;
+    // }catch(e){
+    // 	console.log(e);
+    // }
+    console.log(signing_key_obj);
+    console.log(JSON.stringify(signing_key_obj));
+
+    console.log("9.complete");
+
+    // now have a new RSA with which to sign the symmetric encryption key
+
+    const call3Promise = window.crypto.subtle.exportKey("jwk", signing_key_obj.publicKey);
+    try {
+        sign_pubkey = await call3Promise;
+    } catch (e) {
+        console.log(e);
+    }
+    console.log(sign_pubkey);
+
+    const call4Promise = window.crypto.subtle.exportKey("jwk", signing_key_obj.privateKey);
+    try {
+        sign_privkey = await call4Promise;
+    } catch (e) {
+        console.log(e);
+    }
+
+    console.log(sign_privkey);
+
+    if (createdNewSigningKey) {
+        console.log("save the new signing key");
+    } else {}
+
+    //look for default encryption key
+
+    const call5Promise = loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
+    console.log("100");
+    var default_secretkey;
+    try {
+        //default_secretkey = await call5Promise;
+    } catch (e) {
+        console.log(e);
+    }
+    console.log("101");
+    console.log(default_secretkey);
+    // check if a secret key was found
+
+
+    return signing_key_jwk;
+
+}
+
+async function generate_encryption_key_2() {
+    console.log("navigate-collection.js: generate_encryption_key_2");
+    var uuid;
+    var privatekey_uuid;
+    var newItem;
+    var algoKeyGen = {
+        name: 'AES-GCM',
+        //          length: 256
+        length: 128
+    };
+
+    console.log('navigate-collection.js:algoKeyGen: ' + JSON.stringify(algoKeyGen));
+
+    var keyUsages = [
+        'encrypt',
+        'decrypt'
+    ];
+
+    //generates random id;
+    let guid = () => {
+        console.log("#### 7");
+        let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+        }
+        console.log("#### 8");
+        //return id of format 'aaaaaaaa'-'aaaa'-'aaaa'-'aaaa'-'aaaaaaaaaaaa'
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+
+    }
+    console.log("#### 10");
+    privatekey_uuid = guid();
+    // boolean to keep track of wheather or not a new default signing key was created
+    var createdNewSigningKey = false;
+    // first, get the defaul RSA keypair with which to sign the encryption key.
+
+    var testkeypairobj;
+    var enc_privkey;
+    var enc_pubkey;
+    var sign_privkey;
+    var sign_pubkey;
+
+    var one = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+
+    var two = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+
+    loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey').then(function (d) {
+        console.log(d);
+        console.log(typeof d);
+        if (typeof d == "undefined") {
+            console.log("no default signing priv key..");
+            // make call to create one
+            try {
+                console.log("no");
+                return window.crypto.subtle.generateKey({
+                    name: "RSASSA-PKCS1-v1_5",
+                    modulusLength: 1024,
+                    publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                    hash: {
+                        name: "SHA-1"
+                    },
+                },
+                    true,
+                    ["sign", "verify"]);
+            } catch (e) {
+                console.log(e);
+            }
+            console.log("no");
+        } else {
+            console.log("no");
+            return (new Promise(function (resolve, reject) {
+                    resolve("");
+                }));
+        }
+        console.log("no");
+
+    }).then(function (b) {
+        console.log("no");
+        console.log(b);
+        console.log(typeof b);
+
+        if (typeof b == "") {
+            console.log("bypass");
+            return (new Promise(function (resolve, reject) {
+                    resolve("");
+                }));
+        } else {
+            testkeypairobj = b;
+            createdNewSigningKey = true;
+            console.log("#### 4");
+            // export
+            // make key into exportable form
+            return window.crypto.subtle.exportKey("jwk", testkeypairobj.publicKey);
+        }
+        console.log("#### 2");
+
+    }).then(function (b) {
+        console.log(b);
+        console.log(typeof b);
+
+        if (typeof b == "") {
+            console.log("bypass");
+            return (new Promise(function (resolve, reject) {
+                    resolve("");
+                }));
+        } else {
+            console.log("#### 6");
+            // accept exported public key
+            sign_pubkey = JSON.stringify(b);
+            // export private
+
+            // make key into exportable form
+            return window.crypto.subtle.exportKey("jwk", testkeypairobj.privateKey);
+        }
+        console.log("#### 2");
+
+    }).then(function (b) {
+        console.log(b);
+        console.log(typeof b);
+
+        if (typeof b == "") {
+            console.log("bypass");
+            return (new Promise(function (resolve, reject) {
+                    resolve("");
+                }));
+        } else {
+            console.log("#### 6");
+            // accept exported private key
+            sign_privkey = JSON.stringify(b);
+
+        }
+        console.log("#### 22");
+
+    }).then(function (res) {
+        console.log("#### 5");
+
+        newItem = {
+            "keyId": privatekey_uuid,
+            "uuid": privatekey_uuid,
+            "encryption_publicKey": enc_pubkey,
+            "encryption_privateKey": enc_privkey,
+            "signature_publicKeyJWK": sign_pubkey,
+            "signature_privateKeyJWK": sign_privkey,
+
+        };
+
+        console.log("####: " + JSON.stringify(newItem));
+
+        // have the deafult signing key
+
+        if (createdNewSigningKey) {
+            // return savetoDB
+            console.log("save defaultkey");
+
+            return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', newItem);
+        } else {
+            // buypass to next step
+            console.log("bypass");
+            return (new Promise(function (resolve, reject) {
+                    resolve("");
+                }));
+        }
+
+    }).then(function (res) {
+        // also save on own key
+
+        console.log("save on " + privatekey_uuid);
+        console.log("####: " + JSON.stringify(newItem));
+        newItem.keyId = privatekey_uuid;
+        console.log("####: " + JSON.stringify(newItem));
+
+        return saveToIndexedDB('privateKeys', 'keyPairs', privatekey_uuid, newItem);
+
+        // having just created a new default signing key, we need to save it
+
+
+        // get default encryption key
+
+        //loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey')
+
+
+        // no default encryption key was found,
+
+
+        // create new default encryption key ,
+
+        // sign the encryption key with the signing key
+
+
+        // having just created a new default signed encryption key, we need to save it
+
+
+        // finally, return the default encryption key
+
+
+    });
+}
+
 async function generate_encryption_key() {
     console.log("navigate-collection.js: generate_encryption_key");
     var uuid;
@@ -2759,16 +3492,18 @@ async function generate_encryption_key() {
     // first, get the defaul RSA keypair with which to sign the encryption key.
     var sign_key;
 
-    sign_key = await get_default_signing_key();
+    sign_key = await get_default_signing_key_2();
 
     console.log('navigate-collection.js: ###### get signing key ' + sign_key);
-    get_default_signing_key().then(function (s) {
-        sign_key = s;
-        console.log("sign_key: " + sign_key);
-        console.log(sign_key);
+    //get_default_signing_key().then(function (s) {
+    //  sign_key = s;
+    console.log("sign_key: " + sign_key);
+    console.log(sign_key);
 
-        return window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages);
-    }).then(function (key) {
+    // exit early
+    //return sign_key;
+
+    window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages).then(function (key) {
         // secretKey = key;
         console.log('navigate-collection.js:generate_encryption_key');
         // make key into exportable form
@@ -2801,13 +3536,13 @@ async function generate_encryption_key() {
 
         console.log('data to be saved: ' + JSON.stringify(newItem));
         //  '{"keyId":"one","uuid":"two"}'
-        utils_functions.saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem).then(function (response) {
+        saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem).then(function (response) {
             console.log('data saved');
         }).catch(function (error) {
             console.log(error.message);
         });
 
-        utils_functions.saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+        saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
             console.log('data saved');
         }).catch(function (error) {
             console.log(error.message);
@@ -2818,7 +3553,7 @@ async function generate_encryption_key() {
 
         console.log('consider as possible new default key: ' + JSON.stringify(newItem));
 
-        return utils_functions.loadFromIndexedDB("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
+        return loadFromIndexedDB("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
 
     }).then(function (currentdefaultkey) {
 
@@ -2838,7 +3573,7 @@ async function generate_encryption_key() {
             newItem.keyId = 'defaultSecretKey';
             console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
 
-            utils_functions.saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem);
+            saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem);
 
         }
         if (err == "Error: objectstore_error") {
@@ -3016,7 +3751,7 @@ function submitAddNewDecryptionKey(e) {
         "ext": true
     };
 
-    utils_functions.saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+    saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
         console.log('data saved');
     }).catch(function (error) {
         console.log(error.message);
@@ -3037,6 +3772,519 @@ function submitAddNewDecryptionKey(e) {
  **/
 function BACK_SHA1(msg) {
     console.log("navigate-collection: SHA1");
+    function rotate_left(n, s) {
+        var t4 = (n << s) | (n >>> (32 - s));
+        return t4;
+    };
+    function lsb_hex(val) {
+        var str = '';
+        var i;
+        var vh;
+        var vl;
+        for (i = 0; i <= 6; i += 2) {
+            vh = (val >>> (i * 4 + 4)) & 0x0f;
+            vl = (val >>> (i * 4)) & 0x0f;
+            str += vh.toString(16) + vl.toString(16);
+        }
+        return str;
+    };
+    function cvt_hex(val) {
+        var str = '';
+        var i;
+        var v;
+        for (i = 7; i >= 0; i--) {
+            v = (val >>> (i * 4)) & 0x0f;
+            str += v.toString(16);
+        }
+        return str;
+    };
+    function Utf8Encode(string) {
+        string = string.replace(/\r\n/g, '\n');
+        var utftext = '';
+        for (var n = 0; n < string.length; n++) {
+            var c = string.charCodeAt(n);
+            if (c < 128) {
+                utftext += String.fromCharCode(c);
+            } else if ((c > 127) && (c < 2048)) {
+                utftext += String.fromCharCode((c >> 6) | 192);
+                utftext += String.fromCharCode((c & 63) | 128);
+            } else {
+                utftext += String.fromCharCode((c >> 12) | 224);
+                utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+                utftext += String.fromCharCode((c & 63) | 128);
+            }
+        }
+        return utftext;
+    };
+    var blockstart;
+    var i,
+    j;
+    var W = new Array(80);
+    var H0 = 0x67452301;
+    var H1 = 0xEFCDAB89;
+    var H2 = 0x98BADCFE;
+    var H3 = 0x10325476;
+    var H4 = 0xC3D2E1F0;
+    var A,
+    B,
+    C,
+    D,
+    E;
+    var temp;
+    msg = Utf8Encode(msg);
+    var msg_len = msg.length;
+    var word_array = new Array();
+    for (i = 0; i < msg_len - 3; i += 4) {
+        j = msg.charCodeAt(i) << 24 | msg.charCodeAt(i + 1) << 16 |
+            msg.charCodeAt(i + 2) << 8 | msg.charCodeAt(i + 3);
+        word_array.push(j);
+    }
+    switch (msg_len % 4) {
+    case 0:
+        i = 0x080000000;
+        break;
+    case 1:
+        i = msg.charCodeAt(msg_len - 1) << 24 | 0x0800000;
+        break;
+    case 2:
+        i = msg.charCodeAt(msg_len - 2) << 24 | msg.charCodeAt(msg_len - 1) << 16 | 0x08000;
+        break;
+    case 3:
+        i = msg.charCodeAt(msg_len - 3) << 24 | msg.charCodeAt(msg_len - 2) << 16 | msg.charCodeAt(msg_len - 1) << 8 | 0x80;
+        break;
+    }
+    word_array.push(i);
+    while ((word_array.length % 16) != 14)
+        word_array.push(0);
+    word_array.push(msg_len >>> 29);
+    word_array.push((msg_len << 3) & 0x0ffffffff);
+    for (blockstart = 0; blockstart < word_array.length; blockstart += 16) {
+        for (i = 0; i < 16; i++)
+            W[i] = word_array[blockstart + i];
+        for (i = 16; i <= 79; i++)
+            W[i] = rotate_left(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
+        A = H0;
+        B = H1;
+        C = H2;
+        D = H3;
+        E = H4;
+        for (i = 0; i <= 19; i++) {
+            temp = (rotate_left(A, 5) + ((B & C) | (~B & D)) + E + W[i] + 0x5A827999) & 0x0ffffffff;
+            E = D;
+            D = C;
+            C = rotate_left(B, 30);
+            B = A;
+            A = temp;
+        }
+        for (i = 20; i <= 39; i++) {
+            temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0x6ED9EBA1) & 0x0ffffffff;
+            E = D;
+            D = C;
+            C = rotate_left(B, 30);
+            B = A;
+            A = temp;
+        }
+        for (i = 40; i <= 59; i++) {
+            temp = (rotate_left(A, 5) + ((B & C) | (B & D) | (C & D)) + E + W[i] + 0x8F1BBCDC) & 0x0ffffffff;
+            E = D;
+            D = C;
+            C = rotate_left(B, 30);
+            B = A;
+            A = temp;
+        }
+        for (i = 60; i <= 79; i++) {
+            temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0xCA62C1D6) & 0x0ffffffff;
+            E = D;
+            D = C;
+            C = rotate_left(B, 30);
+            B = A;
+            A = temp;
+        }
+        H0 = (H0 + A) & 0x0ffffffff;
+        H1 = (H1 + B) & 0x0ffffffff;
+        H2 = (H2 + C) & 0x0ffffffff;
+        H3 = (H3 + D) & 0x0ffffffff;
+        H4 = (H4 + E) & 0x0ffffffff;
+    }
+    var temp = cvt_hex(H0) + cvt_hex(H1) + cvt_hex(H2) + cvt_hex(H3) + cvt_hex(H4);
+
+    return temp.toLowerCase();
+}
+
+function loadFromIndexedDB_nonpromise(dbName, storeName, id) {
+    console.log("loadFromIndexedDB_nonpromise.begin");
+    console.log("loadFromIndexedDB:1 " + dbName);
+    console.log("loadFromIndexedDB:2 " + storeName);
+    console.log("loadFromIndexedDB:3 " + id);
+
+    var dbRequest = indexedDB.open(dbName);
+
+    dbRequest.onerror = function (event) {
+        reject(Error("Error text"));
+    };
+
+    dbRequest.onupgradeneeded = function (event) {
+        // Objectstore does not exist. Nothing to load
+        event.target.transaction.abort();
+        reject(Error('Not found'));
+    };
+
+    dbRequest.onsuccess = function (event) {
+        //  console.log("loadFromIndexedDB:onsuccess ");
+
+        var database = event.target.result;
+        var transaction = database.transaction([storeName]);
+        //  console.log("loadFromIndexedDB:transaction: " + JSON.stringify(transaction));
+        var objectStore = transaction.objectStore(storeName);
+        //  console.log("loadFromIndexedDB:objectStore: " + JSON.stringify(objectStore));
+        var objectRequest = objectStore.get(id);
+
+        // console.log("loadFromIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
+
+
+        try {
+
+            objectRequest.onerror = function (event) {
+                // reject(Error('Error text'));
+                console.log("45");
+
+            };
+
+            objectRequest.onsuccess = function (event) {
+                if (objectRequest.result) {
+                    console.log("loadFromIndexedDB:result " + JSON.stringify(objectRequest.result));
+
+                    return (objectRequest.result);
+                } else {
+                    //reject(Error('object not found'));
+                    //console.log("43");
+                    return ('object not found');
+                    //reject('object not found');
+
+
+                }
+            };
+
+        } catch (error) {
+            console.log(error);
+
+        }
+
+    };
+
+}
+
+function loadFromIndexedDB_async(dbName, storeName, id) {
+    console.log("loadFromIndexedDB:0");
+    console.log("loadFromIndexedDB:1 " + dbName);
+    console.log("loadFromIndexedDB:2 " + storeName);
+    console.log("loadFromIndexedDB:3 " + id);
+
+    return new Promise(
+        function (resolve, reject) {
+        var dbRequest = indexedDB.open(dbName);
+
+        dbRequest.onerror = function (event) {
+            reject(Error("Error text"));
+        };
+
+        dbRequest.onupgradeneeded = function (event) {
+            // Objectstore does not exist. Nothing to load
+            event.target.transaction.abort();
+            reject(Error('Not found'));
+        };
+
+        dbRequest.onsuccess = function (event) {
+            //  console.log("loadFromIndexedDB:onsuccess ");
+
+            var database = event.target.result;
+            var transaction = database.transaction([storeName]);
+            //  console.log("loadFromIndexedDB:transaction: " + JSON.stringify(transaction));
+            var objectStore = transaction.objectStore(storeName);
+            //  console.log("loadFromIndexedDB:objectStore: " + JSON.stringify(objectStore));
+            var objectRequest = objectStore.get(id);
+
+            // console.log("loadFromIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
+
+
+            try {
+
+                objectRequest.onerror = function (event) {
+                    // reject(Error('Error text'));
+                    console.log("45");
+                    reject('Error text');
+                };
+
+                objectRequest.onsuccess = function (event) {
+                    if (objectRequest.result) {
+                        console.log("loadFromIndexedDB:result " + JSON.stringify(objectRequest.result));
+
+                        resolve(objectRequest.result);
+                    } else {
+                        //reject(Error('object not found'));
+                        //console.log("43");
+                        resolve('object not found');
+                        //reject('object not found');
+
+
+                    }
+                };
+
+            } catch (error) {
+                console.log(error);
+                reject(error);
+
+            }
+
+        };
+    });
+}
+
+async function loadFromIndexedDB(dbName, storeName, id) {
+    console.log("loadFromIndexedDB:0");
+    console.log("loadFromIndexedDB:1 " + dbName);
+    console.log("loadFromIndexedDB:2 " + storeName);
+    console.log("loadFromIndexedDB:3 " + id);
+    var res;
+    try {
+        await loadFromIndexedDB_async(dbName, storeName, id);
+
+    } catch (e) {
+        console.log(e);
+
+    }
+
+}
+
+async function generateRSAKeyPair() {
+    // for signing
+    // name: "RSASSA-PKCS1-v1_5"
+    // for encryption
+    // name: "RSA-OAEP"
+
+    console.log("generateRSAKeyPair");
+
+    const key = await window.crypto.subtle.generateKey({
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["sign", "verify"]);
+
+    const key2 = await window.crypto.subtle.generateKey({
+            name: "RSA-OAEP",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: "SHA-1"
+            },
+        },
+            true,
+            ["encrypt", "decrypt"]);
+
+    return {
+        RSASSAPKCS1v1_5_privateKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key.privateKey, ),
+        RSASSAPKCS1v1_5_publicKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key.publicKey, ),
+        RSAOAEP_privateKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key2.privateKey, ),
+        RSAOAEP_publicKey: await window.crypto.subtle.exportKey(
+            "jwk",
+            key2.publicKey, ),
+    };
+}
+
+function arrayBufferToBase64(buffer) {
+    var binary = '';
+    var bytes = new Uint8Array(buffer);
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    const buffer = new ArrayBuffer(8);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+function saveToIndexedDB_async(dbName, storeName, keyId, object) {
+
+    console.log("saveToIndexedDB_async:dbname " + dbName);
+    console.log("saveToIndexedDB_async:objectstorename " + storeName);
+    console.log("saveToIndexedDB_async:keyId " + keyId);
+    console.log("saveToIndexedDB_async:object " + JSON.stringify(object));
+
+    //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+
+    return new Promise(
+        function (resolve, reject) {
+
+        //console.log("saveToIndexedDB: 0 resolve=" + resolve )
+        //console.log("saveToIndexedDB: 0 reject=" + reject )
+
+        //if (object.taskTitle === undefined)
+        //            reject(Error('object has no taskTitle.'));
+
+        var dbRequest;
+
+        try {
+
+            dbRequest = indexedDB.open(dbName);
+        } catch (error) {
+            console.log(error);
+
+        }
+        console.log("saveToIndexedDB_async: 1 dbRequest=" + dbRequest);
+
+        dbRequest.onerror = function (event) {
+            console.log("saveToIndexedDB:error.open:db " + dbName);
+            reject(Error("IndexedDB database error"));
+        };
+
+        console.log("saveToIndexedDB: 2" + JSON.stringify(dbRequest));
+
+        dbRequest.onupgradeneeded = function (event) {
+            console.log("saveToIndexedDB: 21");
+            var database = event.target.result;
+            console.log("saveToIndexedDB:db create obj store " + storeName);
+            var objectStore = database.createObjectStore(storeName, {
+                    keyId: keyId
+                });
+        };
+
+        console.log("saveToIndexedDB: 3" + JSON.stringify(dbRequest));
+        try {
+
+            dbRequest.onsuccess = function (event) {
+                console.log("saveToIndexedDB: 31");
+                var database = event.target.result;
+                console.log("saveToIndexedDB: 32");
+                var transaction = database.transaction([storeName], 'readwrite');
+                console.log("saveToIndexedDB: 33");
+                var objectStore = transaction.objectStore(storeName);
+                console.log("saveToIndexedDB:objectStore put: " + JSON.stringify(object));
+
+                var objectRequest = objectStore.put(object); // Overwrite if already exists
+
+                console.log("saveToIndexedDB:objectRequest: " + JSON.stringify(objectRequest));
+
+                objectRequest.onerror = function (event) {
+                    console.log("saveToIndexedDB:error: " + storeName);
+
+                    reject(Error('Error text'));
+                };
+
+                objectRequest.onsuccess = function (event) {
+                    console.log("saveToIndexedDB:success: " + storeName);
+                    resolve('Data saved OK');
+                };
+            };
+
+        } catch (error) {
+            console.log(error);
+
+        }
+
+    });
+}
+
+async function saveToIndexedDB(dbName, storeName, id, object) {
+
+    console.log("saveToIndexedDB:1 " + dbName);
+    console.log("saveToIndexedDB:2 " + storeName);
+    console.log("saveToIndexedDB:3 " + id);
+    console.log("saveToIndexedDB:4 " + JSON.stringify(object));
+
+    await saveToIndexedDB_async(dbName, storeName, id, object);
+
+}
+
+function deleteFromIndexedDB_async(dbName, storeName, keyId) {
+    console.log("deleteFromIndexedDB:1 " + dbName);
+    console.log("deleteFromIndexedDB:2 " + storeName);
+    console.log("deleteFromIndexedDB:3 " + keyId);
+
+    //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+
+    return new Promise(
+        function (resolve, reject) {
+
+        var dbRequest = indexedDB.open(dbName);
+
+        //  console.log("deleteFromIndexedDB: 1 dbRequest=" + dbRequest)
+
+        dbRequest.onerror = function (event) {
+            console.log("deleteFromIndexedDB:error.open:db " + dbName);
+            reject(Error("IndexedDB database error"));
+        };
+
+        //  console.log("deleteFromIndexedDB: 2")
+
+        dbRequest.onupgradeneeded = function (event) {
+            console.log("deleteFromIndexedDB: 21")
+            var database = event.target.result;
+            console.log("deleteFromIndexedDB:db create obj store " + storeName);
+            var objectStore = database.createObjectStore(storeName, {
+                    keyId: keyId
+                });
+        };
+
+        // console.log("deleteFromIndexedDB: 3")
+
+        dbRequest.onsuccess = function (event) {
+            //       console.log("deleteFromIndexedDB: 31")
+            var database = event.target.result;
+            var transaction = database.transaction([storeName], 'readwrite');
+            var objectStore = transaction.objectStore(storeName);
+            var objectRequest = objectStore.delete(keyId); // Overwrite if exists
+
+            objectRequest.onerror = function (event) {
+                console.log("deleteFromIndexedDB:error: " + storeName + "/" + keyId);
+
+                reject(Error('Error text'));
+            };
+
+            objectRequest.onsuccess = function (event) {
+                console.log("deleteFromIndexedDB:success: " + storeName + "/" + keyId);
+                resolve('Data saved OK');
+            };
+        };
+    });
+}
+
+async function deleteFromIndexedDB(dbName, storeName, keyId) {
+    console.log("deleteFromIndexedDB:1 " + dbName);
+    console.log("deleteFromIndexedDB:2 " + storeName);
+    console.log("deleteFromIndexedDB:3 " + keyId);
+
+    await deleteFromIndexedDB_async(dbName, storeName, keyId);
+
+    //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
+
+}
+
+/**
+ * Secure Hash Algorithm (SHA1)
+ * http://www.webtoolkit.info/
+ **/
+function SHA1(msg) {
+    console.log("navigate-collection:SHA1");
     function rotate_left(n, s) {
         var t4 = (n << s) | (n >>> (32 - s));
         return t4;

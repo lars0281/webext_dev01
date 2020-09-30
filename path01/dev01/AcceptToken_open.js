@@ -6,11 +6,11 @@ try {
     browser.runtime.onMessage.removeListener();
 } catch (e) {}
 
-console.log("pageWriterAcceptToken_open:");
+  console.log("pageWriterAcceptToken_open:");
 
 browser.runtime.onMessage.addListener(request => {
 
-    var replacementStr = request.replacement;
+var replacementStr = request.replacement;
     console.log("pageWriterAcceptToken_open:rJSON(request): " + JSON.stringify(request));
 
     console.log("pageWriterAcceptToken_open:new html: " + request.replacement);
@@ -47,12 +47,17 @@ browser.runtime.onMessage.addListener(request => {
 
                 var n = 0;
 
-                // loop backwards to determiine how far the text-only nodes goes.
+                // loop backwards to determiine how far the text-only nodes
+				// goes.
 
-                //console.log("p4,," + sel.getRangeAt(i).commonAncestorContainer);
-                //console.log("p4,," + sel.getRangeAt(i).commonAncestorContainer.nodeType);
-                //console.log("p4,-," + sel.getRangeAt(i).commonAncestorContainer.textContent);
-                //console.log("p4,," + sel.getRangeAt(i).commonAncestorContainer.previousSibling);
+                // console.log("p4,," +
+				// sel.getRangeAt(i).commonAncestorContainer);
+                // console.log("p4,," +
+				// sel.getRangeAt(i).commonAncestorContainer.nodeType);
+                // console.log("p4,-," +
+				// sel.getRangeAt(i).commonAncestorContainer.textContent);
+                // console.log("p4,," +
+				// sel.getRangeAt(i).commonAncestorContainer.previousSibling);
 
 if (sel.getRangeAt(i).commonAncestorContainer){
                 if (sel.getRangeAt(i).commonAncestorContainer.nodeType != 1) {
@@ -60,7 +65,7 @@ if (sel.getRangeAt(i).commonAncestorContainer){
                     var previousnode = sel.getRangeAt(i).commonAncestorContainer.previousSibling;
 					if (previousnode){
                     console.log("p4," + previousnode.nodeType);
-                    //while ( previousnode.nodeType == 3 && n<3 ){
+                    // while ( previousnode.nodeType == 3 && n<3 ){
                     while (previousnode && previousnode.nodeType == 3 && n < 8) {
 
                         console.log("p3,commonAncestorContainer previousSibling (" + n + ")  nodeType: " + previousnode.nodeType);
@@ -108,7 +113,8 @@ console.log("p5," + nextnode.nodeType);
 
                 console.log("pageWriterAcceptToken_open:reWritePageGetHTMLselected: Range.startContainer:" + fulltextofnode);
 
-                // grab the piece of the fulltext of the node preceeding the selected text and see if it contains the opening statement
+                // grab the piece of the fulltext of the node preceeding the
+				// selected text and see if it contains the opening statement
                 var preceeding = fulltextofnode.substring(0, selectStartOffset);
 
                 console.log("pageWriterAcceptToken_open:reWritePageGetHTMLselected: preceeding:" + preceeding);
@@ -117,17 +123,21 @@ console.log("p5," + nextnode.nodeType);
 
                 console.log("pageWriterAcceptToken_open:reWritePageGetHTMLselected: following:" + following);
 
-                // check if selection contain the opening statement, and if not look in the preceeding
+                // check if selection contain the opening statement, and if not
+				// look in the preceeding
 
-                //var glovebox_header_regex = /(:GloveboxToken:[^:]*:[^:]*:[^:]*:)/g;
-                 //var glovebox_header_regex = /:GloveboxToken/g;
+                // var glovebox_header_regex =
+				// /(:GloveboxToken:[^:]*:[^:]*:[^:]*:)/g;
+                 // var glovebox_header_regex = /:GloveboxToken/g;
 
 const glovebox_header_regex = new RegExp('(:GloveboxToken:[^:]*:[^:]*:[^:]*:)', 'm');
 
 
-                // ok, see if it is in the preceeding text with selection_text appended
+                // ok, see if it is in the preceeding text with selection_text
+				// appended
 
-                // pick the glovobox text which intersects with the selection text.
+                // pick the glovobox text which intersects with the selection
+				// text.
                 // - if more than one, only the first one.
 
 
@@ -149,7 +159,8 @@ const glovebox_header_regex = new RegExp('(:GloveboxToken:[^:]*:[^:]*:[^:]*:)', 
                 // Glovebox_end
                 // text
 
-                // identity the exact extent of the Glovebox text - which is then replaces with the decrytped html
+                // identity the exact extent of the Glovebox text - which is
+				// then replaces with the decrytped html
 
                 var k = 0;
                 while ((match3 = glovebox_header_regex.exec(full_text)) != null && k < 1000) {
@@ -201,7 +212,7 @@ const glovebox_header_regex = new RegExp('(:GloveboxToken:[^:]*:[^:]*:[^:]*:)', 
                     // carry out replacement
                     console.log("replacing " + fulltextofnode.substring(token_end_pos, token_start_pos) + " with " + newFragment.toString());
 
-                    //console.log("range " + sel.getRangeAt(i).toString());
+                    // console.log("range " + sel.getRangeAt(i).toString());
                     
 					// expand range
                     console.log("range startcontainer " + sel.getRangeAt(i).startContainer);
@@ -215,14 +226,16 @@ const glovebox_header_regex = new RegExp('(:GloveboxToken:[^:]*:[^:]*:[^:]*:)', 
 
                     console.log("range...from " + token_start_pos);
 
-                  //  sel.getRangeAt(i).setStart(sel.getRangeAt(i).startContainer, token_start_pos);
-                  //  sel.getRangeAt(i).setEnd(sel.getRangeAt(i).startContainer, token_end_pos);
+                  // sel.getRangeAt(i).setStart(sel.getRangeAt(i).startContainer,
+					// token_start_pos);
+                  // sel.getRangeAt(i).setEnd(sel.getRangeAt(i).startContainer,
+					// token_end_pos);
 
                     // delete Glovebox cipher text
                     var e = sel.getRangeAt(i).extractContents()
 
                         // insert the new content before
-            //            sel.getRangeAt(i).insertNode(newFragment);
+            // sel.getRangeAt(i).insertNode(newFragment);
 
                     k++;
                 }
