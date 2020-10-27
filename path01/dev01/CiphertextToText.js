@@ -1,6 +1,8 @@
 
-
-
+// create this structure
+// <glovebox><ciphertext hidden="true">cipher text</ciphertext>plain text</glovebox>
+// Leaving the cipher text in place but not visible allows for quick "reencryption". 
+// Use case: screen "rollover" removes plain text.
 
 function ciphertextToText(request, sender, sendResponse) {
 
@@ -15,7 +17,7 @@ function ciphertextToText(request, sender, sendResponse) {
 
         var newFragment = document.createRange().createContextualFragment(replacement_text);
 
-        // unly text is to be used, so extract the text from this html
+        // only text is to be used, so extract the text from this html
 
         console.log("CiphertextToText:new text(html): " + replacement_text);
         var replacementStr = "";
@@ -135,8 +137,15 @@ function ciphertextToText(request, sender, sendResponse) {
 
                         }
 
+                        // creating the glovebox ciphertext node 
+                        newGloveboxNode = document.createElement("glovebox");
+                        newGloveboxNode.textContent = 'some bold text';
+                        //newGloveboxNode.appendChild(document.createTextNode("New Node Inserted Here"));
+
+                        var comlete_glovebox_token_text = fulltextofnode.substring(token_end_pos, token_start_pos);
+                        
                         // carry out replacement
-                        console.log("replacing " + fulltextofnode.substring(token_end_pos, token_start_pos) + " with " + newFragment.textContent);
+                        console.log("replacing " + comlete_glovebox_token_text + " with " + newFragment.textContent);
 
                         console.log("range " + sel.getRangeAt(i).textContent);
                         // expand range
@@ -171,9 +180,9 @@ function ciphertextToText(request, sender, sendResponse) {
                         console.log("sel.getRangeAt(i).endOffset: " + sel.getRangeAt(i).endOffset);
                         console.log("sel.getRangeAt(i).endContainer: " + sel.getRangeAt(i).endContainer);
 
-                        console.log("sel.getRangeAt(i).  is same: " + sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer));
+                        console.log("sel.getRangeAt(i). is same: " + sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer));
 
-                        // if start node is a text node. annd the cipher text to this node. At the end of the text.
+                        // if start node is a text node. and the cipher text to this node. At the end of the text.
                         if (sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer)) {
                             if (sel.getRangeAt(i).startContainer.nodeType == 3) {
 
@@ -186,6 +195,69 @@ function ciphertextToText(request, sender, sendResponse) {
                                 console.log("sel.getRangeAt(i).endContainer, end: " + end);
 
                                 sel.getRangeAt(i).startContainer.textContent = begin + replacementStr + end;
+                                
+                                // split the text content at the start of the inserted text
+                                console.log("split text node "+ sel.getRangeAt(i).startContainer.textContent +" on position 7");
+                                var seondnewNode = sel.getRangeAt(i).startContainer.splitText(7);
+                                // insert new node before 
+                                let insertedNode = sel.getRangeAt(i).startContainer.parentNode.insertBefore(newGloveboxNode, seondnewNode);
+                                // insert the cipher text into the new node
+                                insertedNode.innerHTML = comlete_glovebox_token_text;
+                                
+                                // mark the new node as hidden
+                                //insertedNode.setAttribute('hidden', 'true');
+                                
+                                // Attach event listener which can take action:
+                                //   - If the text "rolls" out of screen. 
+                                insertedNode.addEventListener('pagehide', function () {
+                                   console.log("onpagehide test");
+                                });
+                           //     insertedNode.addEventListener('submit', function () {
+                           //         console.log("onsubmit test");
+                           //     })
+                                insertedNode.addEventListener("scroll", function () {
+                                    console.log("(on)scroll test");
+                                });
+                                
+                                insertedNode.addEventListener("click", function(){ console.log("click test"); }); 
+                                insertedNode.addEventListener("focus", function (){ console.log("focus test"); });
+                                insertedNode.addEventListener("pagehide", function (){ console.log("pagehide test"); });
+                                insertedNode.addEventListener("pageshow", function (){ console.log("pageshow test"); });
+                                insertedNode.addEventListener("resize", function (){ console.log("resize test"); });
+                                insertedNode.addEventListener("mouseover", function (){ console.log("mouseover test"); });
+                                insertedNode.addEventListener("keypress", function(){ console.log("keypress test"); }); 
+                                insertedNode.addEventListener("keydown", function(){ console.log("keydown test"); });
+                                insertedNode.addEventListener("error", function(){ console.log("error test"); });
+                                insertedNode.addEventListener("dblclick", function(){ console.log("dblclick test"); });
+                                insertedNode.addEventListener("contextmenu", function(){ console.log("contextmenu test"); });
+                                
+                                insertedNode.addEventListener("blur", function(){ console.log("blur test"); });
+                                insertedNode.addEventListener("beforeprint", function(){ console.log("beforeprint test"); });
+
+                                // Add scroll listener to window
+                                // call handler which will assess if any glovebox nodes needs work
+                                // Specifically: 
+                                // whether any deciphered nodes, should have their plaintext deleted and cipher text restored to visible state. 
+                                
+                                window.addEventListener("scroll", function(){ console.log("scroll test"); });
+                                
+                                
+                                
+                                
+                                 insertedNode.addEventListener("unload", function(){ console.log("unload test"); }); 
+                                insertedNode.addEventListener("click", function(){ console.log("Hello World2!"); }); 
+                                insertedNode.addEventListener("unload", function(){ console.log("unload test"); }); 
+                                insertedNode.addEventListener('select', function () {   console.log("select test");   });
+                                insertedNode.addEventListener('forminput', function () {
+                                    console.log("onforminput test");
+                                });
+                                insertedNode.addEventListener('change', function () {
+                                    console.log("onchange test");
+                                });
+                                
+                                
+                                
+                                
                                 console.log("p4");
                             } else {
                                 console.log("p5");

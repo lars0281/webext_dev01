@@ -1,5 +1,8 @@
 
 
+// create <glovebox> node 
+
+
 function textToCiphertext(request, sender, sendResponse) {
     //  document.body.textContent = "";
 
@@ -11,9 +14,9 @@ function textToCiphertext(request, sender, sendResponse) {
     console.log("TextToCiphertext:textToCiphertext: text replacement: " + replacementStr);
     console.log("TextToCiphertext:textToCiphertext: request.regex: " + word);
   
-    // pay attention to not interfere with the node structure. Do not introduce more nodes.
+    // pay attention to not interfere with the node structure. Do not introduce more nodes if at all possible.
 
-    // The selection may span multiple nodes. All of whon will be removed. The Glovebox string will in added to the texnode that preceeds
+    // The selection may span multiple nodes. All of whom will be removed. The Glovebox string will in added to the textnode that preceds
 
 
     if (replacementStr) {
@@ -44,7 +47,8 @@ function textToCiphertext(request, sender, sendResponse) {
 
                     console.log("sel.getRangeAt(i).  is same: " + sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer));
 
-                    // if start node is a text node. annd the cipher text to this node. At the end of the text.
+                    // If start node is a text node and the selection starts inside the node text:
+                    // append the cipher text to text in this node. 
                     if (sel.getRangeAt(i).endContainer.isSameNode(sel.getRangeAt(i).startContainer)) {
                         if (sel.getRangeAt(i).startContainer.nodeType == 3) {
 

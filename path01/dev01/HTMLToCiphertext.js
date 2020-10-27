@@ -4,7 +4,7 @@
 function htmlToCiphertext(request, sender, sendResponse) {
     //  document.body.textContent = "";
 
-    var word = request.regex;
+   // var word = request.regex;
     var replacementStr = request.html_to_ciphertext_replacement;
     console.log("HTMLtoCiphertext:reWritePage: JSON(request): " + JSON.stringify(request));
 

@@ -5,16 +5,14 @@
 /* exported sortedTokenMap */
 
 let dictionary = new Map();
-dictionary.set(':GloveboxSecureKeyTokenFromAcceptedOfferToken:', '<mark>;🍎GloveboxSecureKeyTokenFromAcceptedOfferToken:</mark>');
-dictionary.set(':GloveboxSecureKeyOfferToken:', '🍌');
-dictionary.set(':GloveboxAcceptedSecureKeyOfferToken:', '💥');
-dictionary.set(':GloveboxOpenKeyToken:', '⚾');
-//dictionary.set(':basketball', '🏀');
-//dictionary.set('beer', '🍺');
-//dictionary.set('bicycle', '🚴');
-dictionary.set('bike', '🚴');
+//dictionary.set(':GloveboxSecureKeyTokenFromAcceptedOfferToken:', '<mark>;🍎GloveboxSecureKeyTokenFromAcceptedOfferToken:</mark>');
+dictionary.set(':GloveboxSecureKeyTokenFromAcceptedOfferToken:[^:]*:', '⚾⚾⚾');
+dictionary.set(':GloveboxSecureKeyOfferToken:[^:]*:', '🍌');
+dictionary.set(':GloveboxAcceptedSecureKeyOfferToken:[^:]*:', '💥');
+dictionary.set(':GloveboxOpenKeyToken:[^:]*:', '⚾');
+dictionary.set(':Glovebox:[^:]*:[^:]*:', '⚾');
+//dictionary.set('bike', '🚴');
 
-dictionary.set('CyA', '🚴');
 
 
 
@@ -56,4 +54,6 @@ tempArray.sort((pair1, pair2) => {
 });
 
 // Now that the entries are sorted, put them back into a Map.
+//console.log(tempArray);
+
 let sortedTokenMap = new Map(tempArray);
