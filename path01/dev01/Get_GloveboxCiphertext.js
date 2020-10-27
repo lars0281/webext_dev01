@@ -8,6 +8,9 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
     // console.log("pageWriterGetHTML:reWritePageGetHTMLselected: sender: " + sender);
     // console.log("pageWriterGetHTML:reWritePageGetHTMLselected: sendResponse: " + sendResponse);
 
+    // cipher text is retained inside the DOM but hidden inside a <small hidden="true">:Glovebox:3ccbc288mxxxxx</small> structure and wit ha event listener attached
+    // The event listener is there to effect some actions:
+    // - If the page rolls over and the decrypted plaintext is thereby made invisible, the plaintext is removed and cipher text is returned to it's former position. 
 
     var GetGloveboxCiphertext = "";
 
@@ -27,8 +30,16 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
                 console.log("p2," + sel.rangeCount);
                 for (var i = 0, len = sel.rangeCount; i < len; ++i) {
 
-                    // the selection html (DocumentFragmet) may begin and end in plain text.
-                    // TheGlovebox cipher text may be broken across multiple text nodes in succession.
+
+                    //var glovebox_header_regex = /(:Glovebox:[^:]*:[^:]*:)/g;
+                    const glovebox_header_regex = new RegExp('(:Glovebox:[^:]*:[^:]*:)', 'm');
+
+                    // var glovebox_header_regex = /:Gl/g;
+                    //console.log(expand_selection_to_encompass_the_whole_gloveboxtoken(new RegExp('(:Glovebox:[^:]*:[^:]*:)', 'm'), sel));
+
+                	
+                    // the selection html (DocumentFragmet) may begin and end inside plain text nodes.
+                    // The Glovebox cipher text may be broken across multiple text nodes in succession.
                     // check if preceeding node is a text node
 
                     var previous_text = "";
@@ -40,7 +51,7 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
 
                     var n = 0;
 
-                    // loop backwards to determiine how far the text-only nodes goes.
+                    // loop backwards to determine how far the text-only nodes go.
 
                     var previousnode = sel.getRangeAt(i).commonAncestorContainer.previousSibling;
                     console.log("p4");
@@ -105,7 +116,7 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
 
                     var selection_end_pos = selectStartOffset + rangesize;
 
-                    // get the whole of the surrounding text
+                    // get the whole of the surrounding Glovebox cipher text
 
                     //      var fulltextofnode = sel.getRangeAt(i).startContainer.textContent;
 
@@ -124,15 +135,9 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
 
                     // check if selection contain the opening statement, and if not look in the preceeding
 
-                    //var glovebox_header_regex = /(:Glovebox:[^:]*:[^:]*:)/g;
-                    const glovebox_header_regex = new RegExp('(:Glovebox:[^:]*:[^:]*:)', 'm');
-
-                    // var glovebox_header_regex = /:Gl/g;
-
-
                     // ok, see if it is in the preceeding text with selection_text appended
 
-                    // pick the glovobox text which intersects with the selection text.
+                    // pick the glovebox text which intersects with the selection text.
                     // - if more than one, only the first one.
 
                     var t = previous_text + sel.getRangeAt(i).commonAncestorContainer.textContent + following_text;
@@ -151,7 +156,7 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
 
 
                     var k = 0;
-                    // step through the full body of the text node and look for ofccurenses of Glovebox tokens
+                    // step through the full body of the text node and look for ocurences of Glovebox tokens
                     while ((match3 = glovebox_header_regex.exec(t)) != null && k < 1000) {
                         console.log(" contains##: selection begin: " + selectStartOffset + " end" + selection_end_pos);
                         //ctor Chris :Glovebox:47b83c2c-5d3b-3823-2fc2-d8256aeb7f73:R/+62UyjNV1OcmBrYH7i19KTFP65kiRsVHEcmrE3+ClTTC9W5IlVjTN5u8Bqu4xfXVkBMPSa:
@@ -221,6 +226,39 @@ function getGloveboxCiphertext(request, sender, sendResponse) {
     //return Promise.resolve({response: doc });
 
 
+}
+
+// The use may click anywhere inside the encrypted text.
+// Expand the selection at either end to ensure the entire token text containing the encrypted text is selected.
+// input
+// regexp    Use a regexp to identify the whole token inside a larger plaintext.
+// selection  The starting point from which to expand the selection. Output of window.getSelection()
+// 
+
+// return the text in the expanded selection
+
+function expand_selection_to_encompass_the_whole_gloveboxtoken(reg, sel){
+	
+	console.log("expand_selection_to_encompass_the_whole_gloveboxtoken");
+	
+	console.log("regexp: " + reg);
+	console.log("selection: " + sel);
+	
+    // the selection html (DocumentFragmet) may begin and end inside plain text nodes.
+    // The Glovebox cipher text may be broken across multiple text nodes in succession.
+    // check if preceeding node is a text node
+
+    var previous_text = "";
+
+    console.log("commonAncestorContainer " + sel.getRangeAt(i).commonAncestorContainer);
+    console.log("commonAncestorContainer nodetype " + sel.getRangeAt(i).commonAncestorContainer.nodeType);
+
+    console.log("commonAncestorContainer textContent " + sel.getRangeAt(i).commonAncestorContainer.textContent);
+
+    var n = 0;
+
+	
+	
 }
 
 browser.runtime.onMessage.addListener(getGloveboxCiphertext);

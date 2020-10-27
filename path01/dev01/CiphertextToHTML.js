@@ -147,7 +147,7 @@ function ciphertextToHTML(request, sender, sendResponse) {
                         sel.getRangeAt(i).setEnd(sel.getRangeAt(i).startContainer, token_end_pos);
 
                         // delete Glovebox cipher text
-                        var e = sel.getRangeAt(i).extractContents()
+                        var e = sel.getRangeAt(i).extractContents();
 
                             // insert the new content before
                             sel.getRangeAt(i).insertNode(newFragment);

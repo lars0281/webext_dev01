@@ -5,11 +5,11 @@
 
 /*global sortedEmojiMap*/
 
-
-console.log("####--sub");
-
 // emojiMap.js defines the 'sortedEmojiMap' variable.
 // Referenced here to reduce confusion.
+
+console.log("running substitue.js");
+console.log(sortedEmojiMap);
 const emojiMap = sortedEmojiMap;
 
 /*
@@ -39,7 +39,6 @@ function replaceText (node) {
     // This node only contains text.
     // @see https://developer.mozilla.org/en-US/docs/Web/API/Node/nodeType.
 
-console.log("--sub");
     // Skip textarea nodes due to the potential for accidental submission
     // of substituted emoji where none was intended.
     if (node.parentNode &&
