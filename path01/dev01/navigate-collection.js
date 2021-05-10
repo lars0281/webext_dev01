@@ -3,6 +3,32 @@
 // cd /cygdrive/c/users/lars_/git/repository01/path01/dev01
 
 "use strict";
+// can't use require
+//const CryptoJS = require('crypto-js');
+// so do this instead
+
+//import * as CryptoJS from "./crypto-js/core.js";
+//import * as SHA256 from "./crypto-js/sha256.js";
+
+//import { CryptoJS } from './crypto-js/components/core-min.js';
+import * as CryptoJS  from './crypto-js/components/core.js';
+//import { CryptoJS } from './crypto-js/components/core.js';
+//import * as CryptoJS from './crypto-js/rollup/aes.js*';
+import * as CryptoES from "./crypto-es/lib/core.js";
+//import { AES } from "./crypto-es/lib/aes.js";
+import { MD5} from './crypto-es/lib/md5.js';
+//import {  AES} from './crypto-es/lib/aes.js';
+import * as AES from './crypto-js/rollups/aes.js';
+
+import { AES as ESAES} from './crypto-es/lib/aes.js';
+
+import { SHA256 as ESSHA256} from './crypto-es/lib/sha256.js';
+//import * as SHA256 from './crypto-js/components/sha256.js';
+
+import { Base64 as ESBase64} from './crypto-es/lib/enc-base64.js';
+//import { Base64 } from './crypto-js/enc-base64.js';
+
+//import CryptoES from 'crypto-es';
 
 class NavigateCollectionUI {
     constructor(containerEl) {
@@ -11,19 +37,19 @@ class NavigateCollectionUI {
         this.state = {
             storedImages: [],
         };
-
+   // create relevant database tables
         // setup database "tables"
         //  indexedDB = window.indexedDB || window.webkitIndexedDB ||
         //           window.mozIndexedDB || window.msIndexedDB;
         let db;
 
-        var request = indexedDB.open("trustedDecryptionKeys", 1);
+        var request = indexedDB.open("decryptionKeysDB", 1);
         request.onupgradeneeded = function (event) {
             db = event.target.result;
             db.onerror = function (event) {};
             // Create an objectStore in this database to keep trusted decryption keys
-            console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-            var objectStore2 = db.createObjectStore("decryptionKeys", {
+            console.log("create objectstore decryptionKeysStore in decryptionKeysDB");
+            var objectStore2 = db.createObjectStore("decryptionKeysStore", {
                     keyPath: "keyId"
                 });
 
@@ -32,25 +58,25 @@ class NavigateCollectionUI {
             });
         };
         request.onerror = function (event) {
-            console.log("background.js: dp open request error 201");
+            console.log("dp open request error 201");
         };
         request.onsuccess = function (event) {
             db = event.target.result;
             db.onerror = function (event) {
-                console.log("background.js: db open request error 2");
+                console.log("db open request error 2");
             };
             db.onsuccess = function (event) {
-                console.log("background.js: db open request success 2");
+                console.log("db open request success 2");
             };
         };
 
-        var request2 = indexedDB.open("encryptionKeys", 1);
+        var request2 = indexedDB.open("encryptionKeysDB", 1);
         request2.onupgradeneeded = function (event) {
             db = event.target.result;
             db.onerror = function (event) {};
             // Create an objectStore in this database to keep trusted decryption keys
-            console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-            var objectStore2 = db.createObjectStore("encryptionKeys", {
+            console.log("create objectstore encryptionKeysStore in encryptionKeysDB");
+            var objectStore2 = db.createObjectStore("encryptionKeysStore", {
                     keyPath: "keyId"
                 });
 
@@ -59,27 +85,27 @@ class NavigateCollectionUI {
             });
         };
         request2.onerror = function (event) {
-            console.log("background.js: dp open request error 201");
+            console.log("dp open request error 201");
         };
         request2.onsuccess = function (event) {
             db = event.target.result;
             db.onerror = function (event) {
-                console.log("background.js: db open request error 2");
+                console.log("db open request error 2");
             };
             db.onsuccess = function (event) {
-                console.log("background.js: db open request success 2");
+                console.log("db open request success 2");
             };
         };
 
         // ########
         // ########
-        var request3 = indexedDB.open("encryptionKeysSecureOffers", 1);
+        var request3 = indexedDB.open("createdKeyOffersDB", 1);
         request3.onupgradeneeded = function (event) {
             db = event.target.result;
             db.onerror = function (event) {};
             // Create an objectStore in this database to keep offers to passout decryption keys in a secure way.
-            console.log("background.js: create objectstore for secure key offers");
-            var objectStore2 = db.createObjectStore("createdKeyOffers", {
+            console.log("create objectstore createdKeyOffersStore in createdKeyOffersDB for secure key offers in ");
+            var objectStore2 = db.createObjectStore("createdKeyOffersStore", {
                     keyPath: "refId"
                 });
 
@@ -88,27 +114,27 @@ class NavigateCollectionUI {
             });
         };
         request3.onerror = function (event) {
-            console.log("background.js: dp open request error 201");
+            console.log("dp open request error 201");
         };
         request3.onsuccess = function (event) {
             db = event.target.result;
             db.onerror = function (event) {
-                console.log("background.js: db open request error 2");
+                console.log("db open request error 2");
             };
             db.onsuccess = function (event) {
-                console.log("background.js: db open request success 2");
+                console.log("db open request success 2");
             };
         };
 
         // ########
         // ########
-        var request7 = indexedDB.open("acceptedKeyOffers", 1);
+        var request7 = indexedDB.open("acceptedKeyOffersDB", 1);
         request7.onupgradeneeded = function (event) {
             db = event.target.result;
             db.onerror = function (event) {};
             // Create an objectStore in this database to keep offers to passout decryption keys in a secure way.
-            console.log("background.js: create objectstore for secure key offers");
-            var objectStore = db.createObjectStore("acceptedKeyOffers", {
+            console.log("create objectstore acceptedKeyOffersStore in acceptedKeyOffersDB for secure key offers");
+            var objectStore = db.createObjectStore("acceptedKeyOffersStore", {
                     keyPath: "refId"
                 });
 
@@ -117,13 +143,13 @@ class NavigateCollectionUI {
             });
         };
         request7.onerror = function (event) {
-            console.log("background.js: dp open request error 201");
+            console.log("dp open request error 201");
         };
         request7.onsuccess = function (event) {
             db = event.target.result;
             db.onerror = function (event) {
-                console.log("background.js: db open request error 2");
-                var objectStore = db.createObjectStore("acceptedKeyOffers", {
+                console.log("db open request error 2");
+                var objectStore = db.createObjectStore("acceptedKeyOffersStore", {
                         keyPath: "refId"
                     });
 
@@ -132,8 +158,8 @@ class NavigateCollectionUI {
                 });
             };
             db.onsuccess = function (event) {
-                console.log("background.js: db open request success 2");
-                var objectStore = db.createObjectStore("acceptedKeyOffers", {
+                console.log("db open request success 2");
+                var objectStore = db.createObjectStore("acceptedKeyOffersStore", {
                         keyPath: "refId"
                     });
 
@@ -144,13 +170,13 @@ class NavigateCollectionUI {
         };
 
         // ##########
-        var request4 = indexedDB.open("privateKeys", 1);
+        var request4 = indexedDB.open("keyPairsDB", 1);
         request4.onupgradeneeded = function (event) {
             db = event.target.result;
             db.onerror = function (event) {};
             // Create an objectStore
-            console.log("background.js: create objectstore for public+private key pairs");
-            var objectStore2 = db.createObjectStore("keyPairs", {
+            console.log("create objectstore keyPairsStore in keyPairsDB - for public+private key pairs");
+            var objectStore2 = db.createObjectStore("keyPairsStore", {
                     keyPath: "keyId"
                 });
 
@@ -159,18 +185,18 @@ class NavigateCollectionUI {
             });
         };
         request4.onerror = function (event) {
-            console.log("background.js: dp open request error 201");
+            console.log("dp open request error 201");
         };
         request4.onsuccess = function (event) {
             db = event.target.result;
             db.onerror = function (event) {
-                console.log("background.js: db open request error 2");
+                console.log("db open request error 2");
             };
             db.onsuccess = function (event) {
-                console.log("background.js: db open request success 2");
+                console.log("db open request success 2");
             };
         };
-
+        console.log("DB setup complete");
         // end DB setup
 
 
@@ -188,49 +214,387 @@ class NavigateCollectionUI {
             //const call2Promise= generate_encryption_key_2();
             //Promise.all([call2Promise]);
 
-            
+
             // Get default signing key
-            // If there is on presente, use it, otherwise create one. 
-            
-            
+            // If there is one in place, use it otherwise create a new one.
+
+
             // call to backgroup.js to create a new encryption key
-            browser.runtime.sendMessage({request:"generate_encryption_key"},function(response){
-            	console.log("message sent to backgroup.js with response: " + JSON.stringify(response));
+            browser.runtime.sendMessage({
+                request: "generate_encryption_key"
+            }, function (response) {
+                console.log("message sent to backgroup.js with response: " + JSON.stringify(response));
 
-			});
-            
-browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
-	console.log("response received from background.js");
-	console.log("message: " + message);
-	console.log("sender: " + sender);
-	console.log("sendResponse: " + sendResponse);
-	str = JSON.stringify(message.data);
-	console.log(str);
-});
+            });
 
-
+            browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+                console.log("#### response received from background.js");
+                console.log("message: " + message);
+                console.log("sender: " + sender);
+                console.log("sendResponse: " + sendResponse);
+                str = JSON.stringify(message.data);
+                console.log(str);
+            });
             console.log("button.generate-encryption-key.Completed");
-
         });
 
         document.querySelector("button.generate-private-key").addEventListener('click', function () {
             console.log("### generate_private_key.being");
 
-            generate_privatepublickey();
+            generate_privatepublickey_for_signing();
             console.log("### generate_private_key.end");
 
         });
 
-        document.querySelector("button.backup-all-keys").addEventListener('click', function () {
-            backup_all_keys();
+        // test imports, encrypt
+        var key = "ZxlNEnojO5HbQngiYvrqu32Br6V";
+        
+        var password = "password";
+        var data  = "narayan prusty";
+        var key = null;
+        var vector = crypto.getRandomValues(new Uint8Array(16));  
+        console.log(vector);
+        crypto.subtle.digest({name: "SHA-256"}, convertStringToArrayBufferView(password)
+        		).then(function(result){
+
+        			var use_this_jwk = {"alg":"A128GCM","ext":true,"k":"gwkMEwco4ZJiZuW2K0_e-g","key_ops":["encrypt","decrypt"],"kty":"oct"};
+        			
+console.log("use jwk: " + use_this_jwk);        			
+        			
+           return window.crypto.subtle.importKey("jwk", use_this_jwk, {name: "AES-GCM"}, false, ["encrypt", "decrypt"]);
+        }).then(function(e){
+                key = e;
+console.log(e);
+console.log(vector);
+console.log(data);
+
+var iv = new Uint8Array(12);
+var algoEncrypt = {
+    name: 'AES-GCM',
+    iv: iv,
+    tagLength: 128
+};
+
+                //encrypt_data("narayan prusty",key,vector);
+                //return crypto.subtle.encrypt({name: "AES-CBC", iv: vector}, key, convertStringToArrayBufferView(data));
+                return window.crypto.subtle.encrypt(algoEncrypt, key, stringToArrayBuffer("data"));
+                
+        }).then(function(result){
+        	console.log("######### encryption result->");
+             console.log(result);
+             console.log(_arrayBufferToBase64(result));
+            console.log(JSON.stringify(result));    
+           }).catch(function (err) {
+
+                console.log(err);
+            });
+
+
+    
+        console.log("0");
+        console.log(vector);
+        console.log(key);
+        var encrypted_data = null;
+        crypto.subtle.encrypt({name: "AES-CBC", iv: vector}, key, convertStringToArrayBufferView(data))
+        .then(
+                 function(result){
+                	console.log("2");
+                    encrypted_data = new Uint8Array(result);
+                	console.log("22");
+                	console.log(encrypted_data);
+                    decrypt_data();
+                },
+                function(e){
+                    console.log(e.message);
+                }
+            );
+        
+        var decrypted_data = null;
+        console.log("3");
+        console.log(key);
+        console.log(vector);
+        console.log(encrypted_data);
+        crypto.subtle.decrypt({name: "AES-CBC", iv: vector}, key, encrypted_data).then(
+                function(result){
+                	console.log("24");
+
+                    decrypted_data = new Uint8Array(result);
+                    console.log(convertArrayBufferViewtoString(decrypted_data));
+                },
+                function(e){
+                    console.log(e.message);
+                }
+            );
+        //});
+        var json_payload = '{"onesuper":"twoending"}';
+        
+        console.log(json_payload);
+    
+        var iv = new Uint8Array(12);
+        var algoEncrypt = {
+            name: 'AES-GCM',
+            iv: iv,
+            tagLength: 128
+        };
+
+        console.log('algoEncrypt: ' + JSON.stringify(algoEncrypt));
+
+        var keyUsages = [
+            'encrypt',
+            'decrypt'
+        ];
+        var usekey =  {
+            "alg": "A128GCM",
+            "ext": true,
+            "k": "gwkMEwco4ZJiZuW2K0_e-g",
+            "key_ops": ["encrypt", "decrypt"],
+            "kty": "oct"
+        };
+        	
+        var secretkey;
+        var encrypted;
+        window.crypto.subtle.importKey('jwk', usekey, {
+            name: 'AES-GCM'
+        }, true, keyUsages).then(function (key) {
+           // secretKey = key;
+            console.log('background.js:0' + key);
+            console.log('background.js:0: ' + usekey.k);
+
+        	console.log('Plain Text1: ' + json_payload);
+        	console.log('Plain Text1: ' + stringToArrayBuffer(json_payload));
+
+            return window.crypto.subtle.encrypt(algoEncrypt, key, stringToArrayBuffer(json_payload));
+
+        }).then(function (cipherText) {
+        	encrypted = cipherText;
+        	console.log('Cipher Text1: ' + encrypted);
+        	console.log('Cipher Text1: ' + _arrayBufferToBase64(encrypted));
+            
+        	
+        	// re-import the key and attempt a decrypt
+            //encryptedText = cipherText;
+            return window.crypto.subtle.importKey('jwk', usekey, {
+                name: 'AES-GCM'
+            }, true, keyUsages);
+     }).then(function(key){
+    	 
+    	  return window.crypto.subtle.encrypt(algoEncrypt, key, encrypted);
+
+     }).then(function (clear) {
+      	console.log('Clear Text1: ' + clear);
+     	console.log('Clear Text1: ' + arrayBufferToString(clear));
+
+     	return aes_encrypt(SHA1("passpharse"),'cleartext2');
+     }).then(function (crypt) {
+
+       	console.log('Cipher Text2: ' + crypt);
+
+       	
+     }
+        );
+        
+        
+        
+        
+       // var payload = ESencrypt(json_payload, key);
+
+        
+       // console.log("payload: " + payload);
+        
+        // test imports, decrypt
+     //   var plain = ESdecrypt(payload, key);
+
+     //   console.log("plain: " + plain);
+        
+        
+        // add event listener for backup button
+      //  const rst = MD5("Message").toString();
+      //  console.log("rst: " + rst);
+        
+      //  var hash = SHA256("Message");
+      //  console.log("hash: " + hash);
+        
+        
+     //   var data="Example1";//Message to Encrypt
+     //   var iv  = Base64.parse("");//giving empty initialization vector
+      //  var key=SHA256("Message");//hashing the key using SHA256
+      //  var encryptedString=AES.encrypt("Message", "Secret Passphrase");
+        
+      //        console.log(encryptedString);//genrated encryption String:  swBX2r1Av2tKpdN7CYisMg==
+
+        
+        
+        
+        
+        try{
+        document.getElementById("backup-all-keys_button").addEventListener('click', () => {
+//        document.querySelector("button.backup-all-keys").addEventListener('click', () => {
+        	
+        	  var backupFilePwd = document.getElementById('backupFilePwd').value;
+              
+              console.log("backupFilePwd: " + backupFilePwd);
+        	
+        	console.log("backup all keys start");
+        	 backout_all_keys(backupFilePwd).then(function(e){
+          	  console.log("backup complete");
+        	  console.log(e);
+          });
+          }, false);
+        }catch(e){console.log(e)}
+
+        
+        
+        // add event listener for flush button
+
+      document.querySelector("button.flush-all-keys").addEventListener('click', () => {
+      	 console.log("flush databases");
+      	flush_all_dbs().then(function(e){
+        	  console.log("flush complete");
+      	  console.log(e);
+        });
+        }, false);
+
+        document.getElementById("login2").addEventListener('click', function () {
+            // login is the same as importing keys from a password protected file 
+
+        	  try {
+        	        browser.windows.create({
+        	          type: "popup", url: "/login_popup.html",
+        	          top: 0, left: 0, width: 300, height: 400,
+        	        });
+        	      } catch (err) {
+        	        console.error(err);
+        	      }
+        	
+        });
+      
+      
+        // add event listener for login button
+        document.querySelector("button.login").addEventListener('click', function () {
+            // login is the same as importing keys from a password protected file 
+
+        	let file_decryption_pwd = prompt("What's your sign?");
+        	
+        	console.log("filepwd:" + file_decryption_pwd);
+        	
+        	var fileSelector = document.createElement('input');
+        	fileSelector.setAttribute('type', 'file');
+
+        	var selectDialogueLink = document.createElement('a');
+        	selectDialogueLink.setAttribute('href', '');
+        	selectDialogueLink.innerText = "Select File";
+
+        	selectDialogueLink.onclick = function () {
+        	     fileSelector.click();
+        	     return false;
+        	}
+
+        	// append the file selection box belog the login button
+        	
+        	document.querySelector("button.login").insertAdjacentElement('afterend', selectDialogueLink);
+
+        	
+        	login_and_keep_all_keys().then(function(e){
+            	 console.log("login complete");
+              });
+            console.log("login completed");
+          // force a page-reload to update tables of keys
+
+        });
+        
+        var loginFileSelect = document.getElementById("loginFileSelect"),
+        loginFileElem = document.getElementById("loginFileElem");
+
+        loginFileSelect.addEventListener("click", function (e) {
+        	console.log("loginfile: " + loginFileElem);
+        if (loginFileElem) {
+          	console.log("loginfile: true" );
+            
+        	loginFileElem.click();
+        	
+        
+        	
+        	
+        }
+        e.preventDefault(); // prevent navigation to "#"
+      }, false);
+        
+        
+        
+        
+        
+//        window.addEventListener("load", () => {
+//            loadEdit().then(/* callback function here */);
+//        }, false);
+        
+        // add event listener for logout button
+        document.querySelector("button.logout").addEventListener('click', function () {
+            // logout is the same as backup of all keys, follow by a flush of all keys and key references from the all databases
+
+        	logout_and_backout_all_keys().then(function(e){
+            	 console.log("logout complete");
+                 // console.log("backup completed, proceed to flush all keys.");
+            	  //console.log(e);
+              });
+            console.log("logout completed");
+// force a page-reload
+
         });
 
+        // add event listener for import button
+
+        console.log("setup import form");
+        try{
+        document.getElementById('importContentFile').onchange = function (evt) {
+            console.log("### reading import file");
+            // pick up the password for decrypting this file
+            var importFilePwd = document.getElementById('importFilePwd').value;
+            
+            console.log("importFilePwd: " + importFilePwd);
+            
+            
+            
+            try {
+                let files = evt.target.files;
+                if (!files.length) {
+                    alert('No file selected!');
+                    return;
+                }
+                let file = files[0];
+                let reader = new FileReader();
+                const self = this;
+                reader.onload = (event) => {
+                    console.log('FILE CONTENT raw', event.target.result);
+                    var decryptedString=AES.decrypt(event.target.result, importFilePwd).toString(CryptoES.enc.Utf8); // Message
+                    
+                    console.log('FILE CONTENT decrypted', decryptedString);
+                     // check if data is well-formed, before attempting an import
+                    import_all_keys(decryptedString);
+                };
+                reader.readAsText(file);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        }catch(e){
+        	console.log(e);
+        	}
+        
+        
+
+        // add event listener for login
+        
         //document.querySelector("button.import-all-keys").addEventListener('click', function () {
         //            import_all_keys();
         //       });
 
-        document.getElementById('contentFile').onchange = function (evt) {
+        document.getElementById('loginContentFile').onchange = function (evt) {
             console.log("### reading file");
+            // pick up the password for decrypting this file
+            var loginFilePwd = document.getElementById('loginFilePwd').value;
+            
+            console.log("loginFilePwd: " + loginFilePwd);
+            
             try {
                 let files = evt.target.files;
                 if (!files.length) {
@@ -251,7 +615,8 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
         }
 
         // ##########
-        // setup table showing issued secure key offers
+        // setup html table showing issued secure key offers
+        console.log("## setup html table showing issued secure key offers");
         // #########
 
         {
@@ -303,22 +668,23 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             tb_for_keysecureoffers.appendChild(writeTableHeaderRow(header_conf));
 
-            var dbRequest_0 = indexedDB.open("encryptionKeysSecureOffers");
+            var dbRequest_0 = indexedDB.open("createdKeyOffersDB");
 
             dbRequest_0.onerror = function (event) {
-                reject(Error("Error text"));
+            	console.log("Err");
+                //reject(Error("Error text"));
             };
 
             dbRequest_0.onupgradeneeded = function (event) {
                 // Objectstore does not exist. Nothing to load
                 event.target.transaction.abort();
-                reject(Error('Not found'));
+                //reject(Error('Not found'));
             };
 
             dbRequest_0.onsuccess = function (event) {
                 var database = event.target.result;
-                var transaction = database.transaction('createdKeyOffers', 'readonly');
-                var objectStore = transaction.objectStore('createdKeyOffers');
+                var transaction = database.transaction('createdKeyOffersStore', 'readonly');
+                var objectStore = transaction.objectStore('createdKeyOffersStore');
 
                 if ('getAll' in objectStore) {
                     // IDBObjectStore.getAll() will return the full set of items in our store.
@@ -413,19 +779,6 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
                         }
                     };
 
-                    //     document.querySelector("button.onAddEncryptionKey").onclick = this.onAddEncryptionKey;
-                    //    const tr_last = document.createElement("tr");
-                    //    const td = document.createElement("td");
-                    //    td.innerHTML = "key name";
-                    //    tr_last.appendChild(td);
-                    //    const td2 = document.createElement("td");
-                    //    td2.innerHTML = "key";
-                    //    tr_last.appendChild(td2);
-                    //    const td3 = document.createElement("td");
-                    //    td3.innerHTML = "jwk";
-                    //    tr_last.appendChild(td3);
-                    //    tb_for_keysecureoffers.appendChild(tr_last);
-
                 }
 
             };
@@ -436,6 +789,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
         // ##########
         // setup table showing accepted secure key offers
+        console.log("## setup table showing accepted secure key offers");
         // #########
 
         {
@@ -487,7 +841,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             tb_for_acceptedsecurekeyoffers.appendChild(writeTableHeaderRow(header_conf));
 
-            var dbRequest_0 = indexedDB.open("acceptedKeyOffers");
+            var dbRequest_0 = indexedDB.open("acceptedKeyOffersDB");
 
             dbRequest_0.onerror = function (event) {
                 reject(Error("Error text"));
@@ -501,8 +855,8 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             dbRequest_0.onsuccess = function (event) {
                 var database = event.target.result;
-                var transaction = database.transaction('acceptedKeyOffers', 'readonly');
-                var objectStore = transaction.objectStore('acceptedKeyOffers');
+                var transaction = database.transaction('acceptedKeyOffersStore', 'readonly');
+                var objectStore = transaction.objectStore('acceptedKeyOffersStore');
 
                 if ('getAll' in objectStore) {
                     // IDBObjectStore.getAll() will return the full set of items in our store.
@@ -607,6 +961,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
         // ##########
         // setup table showing encryptionkeys
+        console.log("## setup table showing encryptionkeys")
         // #########
 
         {
@@ -661,22 +1016,24 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             tb_for_encryptionKeys.appendChild(writeTableHeaderRow(header_conf));
 
-            var dbRequest_0 = indexedDB.open("encryptionKeys");
+            var dbRequest_0 = indexedDB.open("encryptionKeysDB");
 
             dbRequest_0.onerror = function (event) {
-                reject(Error("Error text"));
+           console.log("Err")
+            	//reject(Error("Error text"));
             };
 
             dbRequest_0.onupgradeneeded = function (event) {
                 // Objectstore does not exist. Nothing to load
                 event.target.transaction.abort();
-                reject(Error('Not found'));
+                console.log("Err")
+                //      reject(Error('Not found'));
             };
 
             dbRequest_0.onsuccess = function (event) {
                 var database = event.target.result;
-                var transaction = database.transaction('encryptionKeys', 'readonly');
-                var objectStore = transaction.objectStore('encryptionKeys');
+                var transaction = database.transaction('encryptionKeysStore', 'readonly');
+                var objectStore = transaction.objectStore('encryptionKeysStore');
 
                 if ('getAll' in objectStore) {
                     // IDBObjectStore.getAll() will return the full set of items in our store.
@@ -907,6 +1264,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
         // ##########
         // list all private keys in db
+        console.log("## list all private keys in db");
         // ##########
         {
 
@@ -961,7 +1319,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             tb_for_privateKeys.appendChild(writeTableHeaderRow(header_conf));
 
-            var dbRequest = indexedDB.open("privateKeys");
+            var dbRequest = indexedDB.open("keyPairsDB");
             dbRequest.onerror = function (event) {
                 reject(Error("Error text"));
             };
@@ -974,8 +1332,8 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             dbRequest.onsuccess = function (event) {
                 var database = event.target.result;
-                var transaction = database.transaction('keyPairs', 'readonly');
-                var objectStore = transaction.objectStore('keyPairs');
+                var transaction = database.transaction('keyPairsStore', 'readonly');
+                var objectStore = transaction.objectStore('keyPairsStore');
 
                 if ('getAll' in objectStore) {
                     // IDBObjectStore.getAll() will return the full set of items in our store.
@@ -1174,6 +1532,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
         }
         // ########
         // list all decryption keys in db
+        console.log("## list all decryption keys in db");
         // ########
         {
 
@@ -1229,7 +1588,7 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
 
             tb_for_decryptionKeys.appendChild(writeTableHeaderRow(header_conf));
 
-            var dbRequest = indexedDB.open("trustedDecryptionKeys");
+            var dbRequest = indexedDB.open("decryptionKeysDB");
 
             dbRequest.onerror = function (event) {
                 reject(Error("Error text"));
@@ -1242,8 +1601,8 @@ browser.runtime.onMessage.addListener(function(message,sender,sendResponse){
             };
             dbRequest.onsuccess = function (event) {
                 var database = event.target.result;
-                var transaction = database.transaction('decryptionKeys', 'readonly');
-                var objectStore = transaction.objectStore('decryptionKeys');
+                var transaction = database.transaction('decryptionKeysStore', 'readonly');
+                var objectStore = transaction.objectStore('decryptionKeysStore');
 
                 if ('getAll' in objectStore) {
                     // IDBObjectStore.getAll() will return the full set of items in our store.
@@ -1622,7 +1981,7 @@ function writeTableRow(url, column_conf) {
 }
 
 function writeTableNode(url, node_conf) {
-    console.log("writeTableNode ");
+    //console.log("writeTableNode ");
     var n = node_conf;
     //  console.log("node definition " + JSON.stringify(n));
 
@@ -1741,6 +2100,102 @@ function submitScanTabs(e) {
     e.preventDefault();
 }
 
+
+
+function EStoWordArray(str){
+    return CryptoES.Utf8.parse(str);
+  }
+
+  function EStoString(words){
+    return CryptoES.Utf8.stringify(words);
+  }
+
+  function EStoBase64String(words){
+    return ESBase64.stringify(words);
+  }
+
+  function JSencrypt(input, key){
+console.log("encrypt(input, key) being");
+    var PROTOCOL_AES256 = 2;
+    var secret_key = CryptoJS.SHA256(key);
+    var header = toWordArray("AMAZON" + String.fromCharCode(PROTOCOL_AES256));
+    var iv = CryptoJS.lib.WordArray.random(16);
+    var body = CryptoJS.AES.encrypt(json_payload, secret_key, {iv: iv});
+
+    // construct the packet
+    // HEADER + IV + BODY
+    header.concat(iv);
+    header.concat(body.ciphertext);
+
+    // encode in base64
+    return toBase64String(header);
+  }
+
+  function ESencrypt(input, key){
+	  console.log("ESencrypt(input, key) being");
+	      var PROTOCOL_AES256 = 2;
+	      var secret_key = ESSHA256(key);
+	      var header = EStoWordArray("AMAZON" + String.fromCharCode(PROTOCOL_AES256));
+	      var iv = CryptoES.WordArray.random(16);
+	      //var body = ESAES.encrypt(input, secret_key, {iv: iv});
+	      var body = ESAES.encrypt(input, secret_key, );
+
+	      // construct the packet
+	      // HEADER + IV + BODY
+	      header.concat(iv);
+	      header.concat(body.ciphertext);
+
+	      // encode in base64
+	      return EStoBase64String(header);
+	    }
+
+  function JSdecrypt(input, key){
+    // convert payload encoded in base64 to words
+    var packet = CryptoJS.enc.Base64.parse(input);
+
+    // helpers to compute for offsets
+    var PROTOCOL_AES256 = 2;
+    var secret_key = CryptoJS.SHA256(key);
+    var header = toWordArray("AMAZON" + String.fromCharCode(PROTOCOL_AES256));
+    var iv = CryptoJS.lib.WordArray.random(16);
+
+    // compute for offsets
+    var packet_size = packet.words.length - (iv.words.length + header.words.length);
+    var start = iv.words.length + header.words.length;
+    var end = packet.words.length;
+    
+    var ciphertext = CryptoJS.lib.WordArray.create(packet.words.slice(start, end));
+    var parsed_iv = CryptoJS.lib.WordArray.create(packet.words.slice(header.words.length, iv.words.length+1));
+    ciphertext = toBase64String(ciphertext);
+    var decrypted = CryptoJS.AES.decrypt(ciphertext, secret_key, {iv: parsed_iv});
+
+    return toString(decrypted);
+  }
+
+  function ESdecrypt(input, key){
+	    // convert payload encoded in base64 to words
+	    var packet = ESBase64.parse(input);
+
+	    // helpers to compute for offsets
+	    var PROTOCOL_AES256 = 2;
+	    var secret_key = ESSHA256(key);
+	    var header = EStoWordArray("AMAZON" + String.fromCharCode(PROTOCOL_AES256));
+	    var iv = CryptoES.WordArray.random(16);
+
+	    // compute for offsets
+	    var packet_size = packet.words.length - (iv.words.length + header.words.length);
+	    var start = iv.words.length + header.words.length;
+	    var end = packet.words.length;
+	    
+	    var ciphertext = CryptoES.WordArray.create(packet.words.slice(start, end));
+	    var parsed_iv = CryptoES.WordArray.create(packet.words.slice(header.words.length, iv.words.length+1));
+	    ciphertext = EStoBase64String(ciphertext);
+	    var decrypted = ESAES.decrypt(ciphertext, secret_key, {iv: parsed_iv});
+
+	    return EStoString(decrypted);
+	  }
+
+
 // capture the form submission
 function submitGenerateEncryptionKey(e) {
     console.log("navigate-collection.js: submitGenerateEncryptionKey");
@@ -1754,6 +2209,7 @@ function submitGenerateEncryptionKey(e) {
 
 // capture the form submission
 function submitDeleteEncryptionKey(e) {
+    console.log("navigate-collection.js: submitDeleteEncryptionKey" + e);
     console.log("navigate-collection.js: submitDeleteEncryptionKey" + JSON.stringify(e));
     console.log("navigate-collection.js: submitDeleteEncryptionKey" + document.querySelector("#keyId").value);
     browser.storage.sync.set({
@@ -1766,21 +2222,22 @@ function submitDeleteEncryptionKey(e) {
 function deletePrivateKey(u) {
     console.log("navigate-collection.js: deletePrivateKey" + u);
 
-    deleteFromIndexedDB('privateKeys', 'keyPairs', u);
+    deleteFromIndexedDB('keyPairsDB', 'keyPairsStore', u);
 
 }
+
 
 function deleteEncryptionKey(u) {
     console.log("navigate-collection.js: deleteEncryptionKey" + u);
 
-    deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', u);
+    deleteFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', u);
 
 }
 
 function deleteDecryptionKey(u) {
     console.log("navigate-collection.js: deleteDecryptionKey" + u);
 
-    deleteFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', u);
+    deleteFromIndexedDB('decryptionKeysDB', 'decryptionKeysStore', u);
 
 }
 
@@ -1800,7 +2257,7 @@ function exportEncryptionKey(keyId) {
 
     console.log("navigate-collection.js: exportEncryptionKey keyId:" + keyId);
 
-    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", keyId).then(function (obj) {
+    loadFromIndexedDB_async("encryptionKeysDB", "encryptionKeysStore", keyId).then(function (obj) {
 
         console.log("navigate-collection.js: exportEncryptionKey object:" + JSON.stringify(obj));
         // present a popup window
@@ -1860,7 +2317,7 @@ function updateEncryptionKey(uuid) {
     // objectStore:"encryptionKeys"
     // get data from database
 
-    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (obj) {
+    loadFromIndexedDB_async("encryptionKeysDB", "encryptionKeysStore", uuid).then(function (obj) {
 
         console.log("navigate-collection.js: updateEncryptionKey read from db:" + obj);
         console.log("navigate-collection.js: updateEncryptionKey read from db:" + JSON.stringify(obj));
@@ -1909,7 +2366,7 @@ function updateDecryptionKey(uuid) {
     // objectStore:"encryptionKeys"
     // get data from database
 
-    loadFromIndexedDB_async("trustedDecryptionKeys", "decryptionKeys", uuid).then(function (obj) {
+    loadFromIndexedDB_async("decryptionKeysDB", "decryptionKeysStore", uuid).then(function (obj) {
 
         console.log("navigate-collection.js: updateDecryptionKey read from db:" + obj);
         //    console.log("navigate-collection.js: updateDecryptionKey read from db:"+ JSON.stringify(obj));
@@ -1972,9 +2429,9 @@ function makeDefaultEncryptionKey(uuid) {
     // read out the key from the database
     var obj;
 
-    loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", uuid).then(function (o) {
+    loadFromIndexedDB_async("encryptionKeysDB", "encryptionKeysStore", uuid).then(function (o) {
         obj = o;
-        return deleteFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey');
+        return deleteFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey');
     }).then(function (res) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey read from res:" + res);
         console.log("navigate-collection.js: makeDefaultEncryptionKey read from db:" + obj);
@@ -1988,7 +2445,7 @@ function makeDefaultEncryptionKey(uuid) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey write:" + JSON.stringify(obj));
 
         // and save it back in on the defaultkey id
-        return saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey', obj);
+        return saveToIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey', obj);
     }).then(function (response) {
         console.log("navigate-collection.js: makeDefaultEncryptionKey save to db:" + response);
     });
@@ -2015,9 +2472,9 @@ function makeDefaultPrivateKey(uuid) {
     // read out the key from the database
     var obj;
 
-    loadFromIndexedDB_async("privateKeys", "keyPairs", uuid).then(function (o) {
+    loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", uuid).then(function (o) {
         obj = o;
-        return deleteFromIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey');
+        return deleteFromIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultPrivateKey');
 
     }).then(function (res) {
         console.log("navigate-collection.js: makeDefaultPrivateKey read from res:" + res);
@@ -2032,14 +2489,14 @@ function makeDefaultPrivateKey(uuid) {
         console.log("navigate-collection.js: makeDefaultPrivateKey write:" + JSON.stringify(obj));
 
         // and save it back in on the defaultkey id
-        return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
+        return saveToIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultPrivateKey', obj);
     }).catch(function (err) {
-        console.log("background.js: makeDefaultPrivateKey:err=\"" + err + "\"");
+        console.log("makeDefaultPrivateKey:err=\"" + err + "\"");
         // if the error is that the defaul is no set. proceed with setting it.
         if (err == "TypeError: obj is undefined") {
             console.log("na1");
             // read out the key and write it to the default key.
-            return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', obj);
+            return saveToIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultPrivateKey', obj);
 
         } else {
             console.log("na2");
@@ -2127,7 +2584,7 @@ function getTabDocument(result) {
             console.log('adding key with username=' + token_username_value + ' uuid:' + token_uuid_value + ' and key =' + token_key_value);
 
             console.log('adding key: ' + JSON.stringify(newItem));
-            saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', token_uuid_value, newItem).then(function (response) {
+            saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', token_uuid_value, newItem).then(function (response) {
                 console.log("navigate-collection.js: added new decryption key to db:" + response);
 
             });
@@ -2145,114 +2602,567 @@ async function import_all_keys(json_all_records) {
 
     var obj_all_records = JSON.parse(json_all_records);
 
-    var all_encryption_keys = obj_all_records.encryptionKeys;
+    console.log("navigate-collection.js: import_all_keys(obj)" + obj_all_records);
+    console.log("navigate-collection.js: import_all_keys(obj)" + JSON.stringify(obj_all_records));
 
-    console.log("navigate-collection.js: encryption keys: " + JSON.stringify(all_encryption_keys));
+    
+    // loop though master list of objects (by db name) (expect those object with expiration dates)
+    var parentArray = [
+    	["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	,["acceptedKeyOffersDB", "acceptedKeyOffersStore", "acceptedKeyOffersStore"]
+    	,["createdKeyOffersDB", "createdKeyOffersStore", "createdKeyOffersStore"]
+    	,["decryptionKeysDB", "decryptionKeysStore", "decryptionKeysStore"]
+    	,["keyPairsDB", "keyPairsStore", "keyPairsStore"] 
+	//    ,["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	];
+    
 
-    var all_decryption_keys = obj_all_records.trustedDecryptionKeys;
+    for (var i = 0; i < parentArray.length; i++) {
 
-    console.log("navigate-collection.js: decryption keys: " + JSON.stringify(all_decryption_keys));
+    	// for each db name, look in imported data for data belonging in that database.
+    	var db =parentArray[i][0];
+    	var dbName3 =parentArray[i][1];
+    	var storeName3 =parentArray[i][2];
 
-    // loop through
+    	
+    	
+    	console.log("importing :" + obj_all_records.encryptionKeysDB );
+    	console.log("importing :" + JSON.stringify(obj_all_records.encryptionKeysDB) );
 
-    console.log("navigate-collection.js: decryption keys count: " + all_decryption_keys.length);
+    	var inerting_obj = obj_all_records[db]; 
+    	
+    	console.log("importing :" + JSON.stringify(inerting_obj) );
+    	console.log("importing count:" + inerting_obj.length );
 
-    for (var i = 0; i < all_decryption_keys.length; i++) {
-        var obj = all_decryption_keys[i];
+    	console.log("### accessing db:" + db+ " dbname:" + dbName3 + " storeName:" + storeName3);
+    
+    	console.log("inserting into: " + db);
+    	
+    	var k =0;
+    	for (var j = 0; j < inerting_obj.length && k < 2; j++) {
+            var obj = inerting_obj[j];
 
-        console.log(obj.uuid);
-        // create importable object
+            console.log(obj.uuid);
+            // create importable object
 
-
-        // start the import
-
-
-        saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', obj.uuid, obj).then(function (response) {
-            console.log('trusted key saved');
-        }).catch(function (error) {
-            console.log(error.message);
-        });
-
+            k++;
+            // write to database
+            var rc = await saveToIndexedDB_async(db, storeName3, obj.uuid, obj);
+        	             
+    	}
+    	
     }
+    
+    // loop though master list of objects (by db name) for object with expiration dates
+   // check the expiration date of each key and do not import any expired ones.
+     parentArray = [
+       ["decryptionKeysDB", "decryptionKeysStore", "decryptionKeysStore"]
+    	,["keyPairsDB", "keyPairsStore", "keyPairsStore"] 
+	//    ,["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	];
+    
+    
 
-    for (var i = 0; i < all_encryption_keys.length; i++) {
-        var obj = all_encryption_keys[i];
-
-        console.log(obj.uuid);
-        // create importable object
-        // start the import
-
-
-        saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', obj.uuid, obj).then(function (response) {
-            console.log('encryption key saved');
-        }).catch(function (error) {
-            console.log(error.message);
-        });
-
-    }
 
 }
 
-async function backup_all_keys() {
-    console.log("navigate-collection.js: backup_all_keys");
+function wait_promise(ms) 
+{
+	return new Promise((resolve, reject) => {
+	setTimeout(() => {
+	resolve(ms);
+	}, ms )
+	})
+}
 
-    var listOfKeys = "";
 
-    // read out all decryption keys
+function wait_promisedump_db(db,dbName3,storeName3) 
+{
+	return new Promise((resolve, reject) => {
+		
+		   // access database
+        console.log("wait_promisedump_db access database: " + db);
+        var dbRequest = indexedDB.open(db);
 
+   //     try {
+            dbRequest.onsuccess = function (event3) {
+                var database3 = event3.target.result;
 
-    var storeName = 'decryptionKeys';
+                //console.log("access datastore: " + storeName3);
 
-    // get decryption keys
+                var transaction3 = database3.transaction([storeName3]);
+                var objectStore3 = transaction3.objectStore(storeName3);
 
-    var dbRequest = indexedDB.open("trustedDecryptionKeys");
+                var allRecords3 = objectStore3.getAll();
+                allRecords3.onsuccess = function () {
 
-    dbRequest.onsuccess = function (event) {
-        var database = event.target.result;
-        var transaction = database.transaction([storeName]);
-        //  console.log("loadFromIndexedDB:transaction: " + JSON.stringify(transaction));
-        var objectStore = transaction.objectStore(storeName);
+                    const res3 = allRecords3.result;
+                    //console.log(res3);
+                    //console.log("## results" + JSON.stringify(res3));
+                    //listOfKeys = listOfKeys + ',"privateKeys":' + JSON.stringify(res3) + '';
 
-        var allRecords = objectStore.getAll();
-        allRecords.onsuccess = function () {
-
-            //download_file("glovebox_keys_backup1.txt", listOfKeys);
-            listOfKeys = listOfKeys + '{"trustedDecryptionKeys":' + JSON.stringify(allRecords.result) + '';
-
-            // get encryption keys
-
-            var dbRequest2 = indexedDB.open("encryptionKeys");
-
-            dbRequest2.onsuccess = function (event2) {
-                var database2 = event2.target.result;
-
-                var storeName2 = 'encryptionKeys';
-
-                var transaction2 = database2.transaction([storeName2]);
-                var objectStore2 = transaction2.objectStore(storeName2);
-
-                var allRecords2 = objectStore2.getAll();
-                allRecords2.onsuccess = function () {
-
-                    listOfKeys = listOfKeys + ',"encryptionKeys":' + JSON.stringify(allRecords.result) + '';
-                    listOfKeys = listOfKeys + '}';
-                    download_file("glovebox_keys_backup.json", listOfKeys);
-
+                    // get private(and their public component) signing keys
+                   database3.close();
+                   resolve(JSON.stringify(res3));
+                
                 };
+                database3.close();
 
             }
+//            dbRequest.close();
+  //      } catch (e) {
+   //         console.log(e);
+   //         resolve("error");
+    //    }
+	
+	})
+}
 
-        };
 
+function dump_db(db,dbName3,storeName3) 
+{
+		
+		   // access database
+        console.log("dump_db access database: " + db);
+        var dbRequest = indexedDB.open(db);
+
+   //     try {
+            dbRequest.onsuccess = function (event3) {
+                var database3 = event3.target.result;
+
+                //console.log("access datastore: " + storeName3);
+
+                var transaction3 = database3.transaction([storeName3]);
+                var objectStore3 = transaction3.objectStore(storeName3);
+
+                var allRecords3 = objectStore3.getAll();
+                allRecords3.onsuccess = function () {
+
+                    const res3 = allRecords3.result;
+                    //console.log(res3);
+                    //console.log("## results" + JSON.stringify(res3));
+                    //listOfKeys = listOfKeys + ',"privateKeys":' + JSON.stringify(res3) + '';
+
+                    // get private(and their public component) signing keys
+                   database3.close();
+                   return(JSON.stringify(res3));
+                
+                };
+                database3.close();
+
+            }
+//            dbRequest.close();
+  //      } catch (e) {
+   //         console.log(e);
+   //         resolve("error");
+    //    }
+	
+}
+
+// remove all data from all local databases
+async function flush_all_dbs() {
+    console.log("### flush_all_dbs() begin");
+
+    // loging out mean the user is not longer able to encrypt or decrypt data. 
+    // Not being able to access own prvate key, also implies that issuing or accepting key also becomes impossible. Databases of such offers are therefore also wiped
+
+    // step through the databases and remove all entries
+    
+    
+    var parentArray = [
+    	["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	,["acceptedKeyOffersDB", "acceptedKeyOffersStore", "acceptedKeyOffersStore"]
+    	,["createdKeyOffersDB", "createdKeyOffersStore", "createdKeyOffersStore"]
+    	,["decryptionKeysDB", "decryptionKeysStore", "decryptionKeysStore"]
+    	,["keyPairsDB", "keyPairsStore", "keyPairsStore"] 
+	//    ,["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	];
+    
+    for (var i = 0; i < parentArray.length; i++) {
+    	// for each db name, look in imported data for data belonging in that database.
+    	var db =parentArray[i][0];
+    	var dbName3 =parentArray[i][1];
+    	var storeName3 =parentArray[i][2];
+        console.log("i: " +i )
+        console.log("clear IndexedDB: " +db )
+        console.log("clearing objectstore: " +storeName3 )
+    	
+        await flush_all_keys(db,storeName3);
+    	
     }
-
-    //download_file("glovebox_keys_backup.txt", listOfKeys, "text/plain");
-
+    
+    // trigger a page reload
+    
+    console.log("### flush_all_dbs() end");
 
 }
 
-function download_file(name, contents, mime_type) {
-    mime_type = mime_type || "text/plain";
+// handles login file drop
+function loginDropHandler(ev) {
+	  console.log('File(s) dropped');
+
+	  // Prevent default behavior (Prevent file from being opened)
+	  ev.preventDefault();
+
+	  if (ev.dataTransfer.items) {
+	    // Use DataTransferItemList interface to access the file(s)
+	    for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+	      // If dropped items aren't files, reject them
+	      if (ev.dataTransfer.items[i].kind === 'file') {
+	        var file = ev.dataTransfer.items[i].getAsFile();
+	        console.log('... file[' + i + '].name = ' + file.name);
+	      }
+	    }
+	  } else {
+	    // Use DataTransfer interface to access the file(s)
+	    for (var i = 0; i < ev.dataTransfer.files.length; i++) {
+	      console.log('... file[' + i + '].name = ' + ev.dataTransfer.files[i].name);
+	    }
+	  }
+	}
+
+
+function encryptData(data,iv,key){
+	console.log("### encryptData(data,iv,key) begin");
+     if(typeof data=="string"){
+   data=data.slice();
+ encryptedString = AES.encrypt(data, key, {
+     iv: iv,
+     mode: CryptoES.mode.CBC,
+     padding: CryptoES.pad.Pkcs7
+});
+ }
+  else{
+encryptedString = AES.encrypt(JSON.stringify(data), key, {
+     iv: iv,
+     mode: CryptoES.mode.CBC,
+     padding: CryptoES.pad.Pkcs7
+});  
+}
+return encryptedString.toString();
+}
+
+
+function handleFiles(files) {
+	console.log("### handleFiles(files) begin");
+
+	  if (!files.length) {
+	    loginFileList.innerHTML = "<p>No files selected!</p>";
+	  } else {
+	    var list = document.createElement("ul");
+	    for (var i = 0; i < files.length; i++) {
+	      var li = document.createElement("li");
+	      list.appendChild(li);
+	      
+	      var img = document.createElement("img");
+	      img.src = window.URL.createObjectURL(files[i]);
+	      img.height = 60;
+	      img.onload = function(e) {
+	        window.URL.revokeObjectURL(this.src);
+	      }
+	      li.appendChild(img);
+	      
+	      var info = document.createElement("span");
+	      info.innerHTML = files[i].name + ": " + files[i].size + " bytes";
+	      li.appendChild(info);
+	    }
+	    loginFileList.appendChild(list);
+	  }
+	}
+
+
+
+//remove all data from local databases
+async function flush_all_keys(dbName,storeName) {
+    console.log("### flush_all_keys(dnName,storeName) begin");
+
+	// connect to database
+	var dbRequest = indexedDB.open(dbName);
+	
+	dbRequest.onsuccess = function (event) {
+          console.log("clearing objectstore: " +storeName )
+          var database = event.target.result;
+          var transaction = database.transaction([storeName], 'readwrite');
+          var objectStore = transaction.objectStore(storeName);
+          var objectRequest = objectStore.clear(); // clear all records
+          objectRequest.onerror = function (event) {
+              console.log("failed cleared IndexedDB: " +dbName )
+          };
+
+          objectRequest.onsuccess = function (event) {
+              console.log("succesfully cleared IndexedDB: " +dbName )
+          };
+      };
+	
+    
+    console.log("### flush_all_keys(dnName,storeName) end");
+
+}
+
+
+
+
+async function login_and_keep_all_keys() {
+    console.log("### login_and_keep_all_keys() BEGIN");
+
+    // prompt user to select a file
+    
+    
+    
+    
+    console.log("### login_and_keep_all_keys() END");
+}
+
+async function logout_and_backout_all_keys() {
+    console.log("### logout_and_backup_all_keys() begin");
+
+    
+    // read the password to be used to encrypt the key data
+    
+    var logoutFilePwd = document.getElementById('logoutFilePwd').value;
+    console.log("logoutFilePwd: " + logoutFilePwd);
+    
+    
+    
+  //  return new Promise((resolve, reject) => {
+    
+    var listOfKeys = "{";
+
+    // create list of databases and datastores to be backed up in the form of an array of arrays with each field naming the database, datastore in the database
+
+
+    var parentArray = [
+    	["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	,["acceptedKeyOffersDB", "acceptedKeyOffersStore", "acceptedKeyOffersStore"]
+    	,["createdKeyOffersDB", "createdKeyOffersStore", "createdKeyOffersStore"]
+    	,["decryptionKeysDB", "decryptionKeysStore", "decryptionKeysStore"]
+    	,["keyPairsDB", "keyPairsStore", "keyPairsStore"] 
+	//    ,["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	];
+
+    try{
+    for (var i = 0; i < parentArray.length; i++) {
+
+    	try{
+    	//await wait_promise(20); //wait for 2 seconds
+    	//var one = await wait_promisedump_db(parentArray[i][0],parentArray[i][1],parentArray[i][2]);
+    	//var one = dump_db(parentArray[i][0],parentArray[i][1],parentArray[i][2]);
+    		//var one;
+    		
+    	var db =parentArray[i][0];
+    	var dbName3 =parentArray[i][1];
+    	var storeName3 =parentArray[i][2];
+    	console.log("### accessing db:" + db+ " dbname:" + dbName3 + " storeName:" + storeName3);
+    	
+    	const one = await READ_DB(db,dbName3,storeName3);
+        console.log("READ " + one);
+    	
+    //	console.log("# appending: " +parentArray[i][0] + "   " + one);
+    //    console.log("#-#-#-#-# " + i + " " + listOfKeys);
+    	
+    	listOfKeys = listOfKeys + '"'+parentArray[i][0] + '":' + one + ',';
+    	console.log("#-#-#-#-# (accumulating) " + i + " " + listOfKeys);
+    
+    	}catch(e){
+    		console.log("ERROR");
+
+    		console.log(e);
+    	}
+
+    }
+    }catch(e){console.log(e)}
+    
+    listOfKeys = listOfKeys.substring(0,listOfKeys.length - 1) + '}';
+    console.log("#-#-#-#-# listOfKeys (complete) " + listOfKeys);
+    
+    // encrypt the data structure
+
+    // create key object
+    let enc = new TextEncoder();
+    let encoded = enc.encode("message");
+    
+    let iv = new Uint8Array(16);
+    let key = new Uint8Array(16);
+    let data = new Uint8Array(12345);
+  //crypto functions are wrapped in promises so we have to use await and make sure the function that
+  //contains this code is an async function
+  //encrypt function wants a cryptokey object
+  const key_encoded = await crypto.subtle.importKey(  "raw",    key.buffer,   'AES-CTR' ,  false,   ["encrypt", "decrypt"]);
+  const encrypted_content = await window.crypto.subtle.encrypt(
+      {
+        name: "AES-CTR",
+        counter: iv,
+        length: 128
+      },
+      key_encoded,
+      encoded
+    );
+
+  //Uint8Array
+  console.log(encrypted_content);
+    
+    await download_file("glovebox_keys_backup.json", listOfKeys);
+
+
+    console.log("### logout_and_backup_all_keys() end");
+   // resolve( "true");
+    console.log("backup completed, proceed to flush all keys.");
+   // empty out all databases
+    await flush_all_dbs();
+    
+    // search all open tabs for decrypted content
+    // Ordinarily when content is decrypted, the encrypted data is hidden and the decrypted content is show in its place.
+    // This "doubling up" is put in place to facilitate a rapid logout: where there is no need to re-enrypt, but simply delete all decrypted data and return to showing the original, encrypted data
+    
+    
+ //   });
+
+}
+
+
+
+async function backout_all_keys(backupFilePwd) {
+    console.log("### backup_all_keys(backupFilePwd) begin");
+
+  //  return new Promise((resolve, reject) => {
+    
+    var listOfKeys = "{";
+
+    // create list of databases and datastores to be backed up in the form of an array of arrays with each field naming the database, datastore in the database
+
+//  //
+    
+    //  ["acceptedKeyOffers", "acceptedKeyOffers", "acceptedKeyOffers"]
+   //   ["gloveboxKeys", "decryptionKeys", "decryptionKeys"],
+   // ["gloveboxKeys", "encryptionKeys", "encryptionKeys"]
+	//   ["privateKeys", "keyPairs", "keyPairs"] 
+    var parentArray = [
+    	["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	,["acceptedKeyOffersDB", "acceptedKeyOffersStore", "acceptedKeyOffersStore"]
+    	,["createdKeyOffersDB", "createdKeyOffersStore", "createdKeyOffersStore"]
+    	,["decryptionKeysDB", "decryptionKeysStore", "decryptionKeysStore"]
+    	,["keyPairsDB", "keyPairsStore", "keyPairsStore"] 
+	//    ,["encryptionKeysDB", "encryptionKeysStore", "encryptionKeysStore"]
+    	];
+
+    try{
+    for (var i = 0; i < parentArray.length; i++) {
+
+    	try{
+    	//await wait_promise(20); //wait for 2 seconds
+    	//var one = await wait_promisedump_db(parentArray[i][0],parentArray[i][1],parentArray[i][2]);
+    	//var one = dump_db(parentArray[i][0],parentArray[i][1],parentArray[i][2]);
+    		//var one;
+    		
+    	var db =parentArray[i][0];
+    	var dbName3 =parentArray[i][1];
+    	var storeName3 =parentArray[i][2];
+    	console.log("### accessing db:" + db+ " dbname:" + dbName3 + " storeName:" + storeName3);
+    	
+    	const one = await READ_DB(db,dbName3,storeName3);
+        console.log("READ " + one);
+    	
+    //	console.log("# appending: " +parentArray[i][0] + "   " + one);
+    //    console.log("#-#-#-#-# " + i + " " + listOfKeys);
+    	
+    	 listOfKeys = listOfKeys + '"'+parentArray[i][0] + '":' + one + ',';
+    	console.log("#-#-#-#-# (accumulating) " + i + " " + listOfKeys);
+    
+    	}catch(e){
+    		console.log("ERROR");
+
+    		console.log(e);
+    	}
+
+    }
+    }catch(e){console.log(e)}
+    
+    listOfKeys = listOfKeys.substring(0,listOfKeys.length - 1) + '}';
+    
+    // proceed with encryption
+    // using passphrase specified in the form
+    
+    
+    
+    console.log("#-#-#-#-# listOfKeys (complete) " + listOfKeys);
+    // encrypt the data using the passphrase contained in the variable backupFilePwd
+    
+    var encryptedString=AES.encrypt(listOfKeys, backupFilePwd);
+    
+    console.log("#-#-#-#-# encrypted (encryoted) " + encryptedString);
+     
+    console.log("#-#-#-#-# encrypted (base64) " + Base64.stringify(encryptedString));
+    
+    
+    await download_file("glovebox_keys_backup.json", Base64.stringify(encryptedString));
+
+
+    //download_file("glovebox_keys_backup.txt", listOfKeys, "text/plain");
+    console.log("### backup_all_keys() end");
+   // resolve( "true");
+    console.log("backup completed, proceed to flush all keys.");
+//    await flush_all_dbs();
+    
+ //   });
+
+}
+
+ function READ_DB(db, dbName3, storeName3) {
+
+	 return new Promise((resolve, reject) => {
+	
+		 try{
+	var one;
+	
+	console.log("reading db:" + db+ " dbname:" + dbName3 + " storeName:" + storeName3);
+    var dbRequest = indexedDB.open(db);
+    
+    dbRequest.onerror = function () {
+  	  console.log("Error", dbRequest.error);
+    	  console.error("Error", dbRequest.error);
+    	};
+        dbRequest.onupgradeneeded  = function () {
+        	  console.log("onupgradeneeded ");
+          	  console.error("onupgradeneeded ");
+          	};
+    	
+    dbRequest.onsuccess = function (event3) {
+         console.log("one " + one);
+         console.log("db:" + db+ " dbname:" + dbName3 + " storeName:" + storeName3);
+         var database3 = event3.target.result;
+         console.log("2" );
+         // open database on read-only mode
+ var transaction3 = database3.transaction([storeName3], 'readonly');
+         var objectStore3 = transaction3.objectStore(storeName3);
+         console.log("3" );
+         var allRecords3 = objectStore3.getAll();
+         console.log("4" );
+              allRecords3.onsuccess = function () {
+              const res3 = allRecords3.result;
+              // get private(and their public component) signing keys
+              database3.close();
+              one = JSON.stringify(res3);
+              console.log("returning from database: " + one);
+              resolve( one);
+         };
+         database3.close();
+    }
+    
+		 }catch(e){
+			 console.log(e);
+			 reject();
+		 }
+    
+	 });
+	 
+	//return one;
+}
+
+async function download_file(name, contents, mime_type) {
+
+    console.log("download_file BEGIN");
+
+	mime_type = mime_type || "text/plain";
 
     var blob = new Blob([contents], {
             type: mime_type
@@ -2271,6 +3181,7 @@ function download_file(name, contents, mime_type) {
 
     dlink.click();
     dlink.remove();
+    console.log("download_file END");
 }
 
 async function get_default_signing_key_2() {
@@ -2297,7 +3208,7 @@ async function get_default_signing_key_2() {
     var uuid;
 
     let promises = [];
-    promises[0] = (loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey'));
+    promises[0] = (loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey'));
     defaultSigningKey = await Promise.all(promises);
 
     console.log('###### get default key ' + defaultSigningKey);
@@ -2317,7 +3228,7 @@ async function get_default_signing_key_2() {
     console.log('###### testkeypairobj ' + testkeypairobj);
 
     var d;
-    d = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    d = await loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
     console.log(d);
     console.log(typeof d);
     if (typeof d == "undefined") {
@@ -2359,8 +3270,8 @@ async function get_default_signing_key_2() {
 async function get_default_signing_key() {
     console.log("get_default_signing_key:start");
 
-    // This function returns a JSON structure contaning a public and private key suitable for digital signing and signature validation.
-    // ( and also a keypai suitable for RSA encryption/dekryption)
+    // This function returns a JSON structure containing a public and private key suitable for digital signing and signature validation.
+    // ( and also a keypai suitable for RSA encryption/decryption)
     // If not such default key has been set, one is created and insterted into the database.
     // If a new key is created, it is inserted both under it's own unique identifier, as well as under the default identifier.
 
@@ -2380,14 +3291,15 @@ async function get_default_signing_key() {
     var uuid;
 
     var d;
-    d = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    d = await loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
     console.log(d);
     console.log(typeof d);
     if (typeof d == "undefined") {
-        console.log("no default signing priv key..");
+        console.log("no default signing priv key was found");
         // make call to create one
 
         var a;
+        console.log("generating new signing priv key was found");
         a = await window.crypto.subtle.generateKey({
                 name: "RSASSA-PKCS1-v1_5",
                 modulusLength: 1024,
@@ -2476,7 +3388,7 @@ function get_default_signingkey_jwk() {
 
     // look for default signing key in the database first, and use this if found
 
-    loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey')
+    loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
     .then(function (key) {
         // check if key was found and set flag accordingly
         console.log(key + ' fetched!');
@@ -2597,6 +3509,10 @@ async function generate_signingkey_jwk() {
     return newItem;
 }
 
+
+
+
+
 // generaye a public-private keypair
 // put it in the database
 
@@ -2607,6 +3523,7 @@ async function generate_privatepublickey_2_jwk() {
     console.log(one);
     console.log("generate_privatepublickey_2_jwk.fin");
 }
+
 generate_privatepublickey_3_jwk
 
 async function generate_privatepublickey_3_jwk() {
@@ -2660,8 +3577,8 @@ async function generate_privatepublickey_3_jwk() {
     console.log("generate_privatepublickey_3_jwk:fin.2");
 }
 
-async function generate_privatepublickey() {
-    console.log("generate_privatepublickey");
+async function generate_privatepublickey_for_signing() {
+    console.log("running generate_privatepublickey_for_signing()");
 
     var uuid;
     var testkeypairobj;
@@ -2686,6 +3603,13 @@ async function generate_privatepublickey() {
         length: 128
     };
 
+    
+    // check if there already is a default key, and if there is none, create it.
+    // This ensures a default private key for signing is allways present.
+var defKey = await get_default_signing_key();
+console.log("default key:" + JSON.stringify(defKey));
+    
+    
     console.log('navigate-collection.js:algoKeyGen: ' + JSON.stringify(algoKeyGen));
 
     var keyUsages = [
@@ -2747,8 +3671,11 @@ async function generate_privatepublickey() {
 
     console.log('newItem: ' + JSON.stringify(newItem));
 
-//    return newItem;
-
+    
+    
+    // bypass the remainder
+  //  return newItem;
+ 
     var crypt_key_obj;
     crypt_key_obj = await window.crypto.subtle.generateKey({
             name: "RSA-OAEP",
@@ -2899,7 +3826,7 @@ async function generate_private_key() {
         //        newItem.keyId = 'defaultPrivateKey';
         console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
 
-        saveToIndexedDB_async('privateKeys', 'keyPairs', 'keyId', newItem);
+        saveToIndexedDB_async('keyPairsDB', 'keyPairsStore', 'keyId', newItem);
 
         // check if there is a default key present, if not save this as the default key too.
 
@@ -2909,16 +3836,16 @@ async function generate_private_key() {
 
     }).then(function (currentdefaultkey) {
 
-        console.log("background.js: getDefaultPrivateKey:found=" + currentdefaultkey);
-        console.log("background.js: getDefaultPrivateKey:found=" + JSON.stringify(currentdefaultkey));
+        console.log("getDefaultPrivateKey:found=" + currentdefaultkey);
+        console.log("getDefaultPrivateKey:found=" + JSON.stringify(currentdefaultkey));
 
     }).catch(function (err) {
         if (err == "Error: object not found") {
-            console.log("background.js: defaultkey not found, assign this key as it");
+            console.log("defaultkey not found, assign this key as it");
             // make a new default encryption key
         }
         if (err == "Error: objectstore_error") {
-            console.log("background.js: respond to objectstore error");
+            console.log("respond to objectstore error");
         }
 
     });
@@ -2956,7 +3883,7 @@ function generate_encryption_key_4() {
     // look for default signing key in the database first, and use this if found
 
     var key;
-    key = loadFromIndexedDB_nonpromise("privateKeys", "keyPairs", 'defaultPrivateKey');
+    key = loadFromIndexedDB_nonpromise("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
 
     console.log(key);
     console.log(typeof key);
@@ -2994,8 +3921,8 @@ function generate_encryption_key_4() {
         console.log(c);
         console.log("should have signing key at this point");
         console.log(signing_key_obj);
-        return loadFromIndexedDB_nonpromise("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
-      
+        return loadFromIndexedDB_nonpromise("encryptionKeysDB", "encryptionKeysStore", 'defaultSecretKey');
+
     }).then(function (d) {
         console.log(d);
         console.log(typeof d);
@@ -3032,7 +3959,7 @@ function generate_encryption_key_4() {
             return window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages);
         } else {
             return window.crypto.subtle.generateKey(algoKeyGen, true, keyUsages);
-        	
+
         }
 
     }).then(function (f) {
@@ -3065,7 +3992,7 @@ async function generate_encryption_key_3() {
 
     // add database lookup for default signing key
     sequence = sequence.then(function () {
-            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+            return loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
         }).then(function (url) {
             // check if key was found and set flag accordingly
             console.log(url + ' fetched!')
@@ -3076,7 +4003,7 @@ async function generate_encryption_key_3() {
         })
 
         sequence = sequence.then(function () {
-            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+            return loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
         }).then(function (url) {
             // check if key was found and set flag accordingly
             console.log(url + ' fetched!')
@@ -3087,7 +4014,7 @@ async function generate_encryption_key_3() {
         })
 
         sequence = sequence.then(function () {
-            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+            return loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
         }).then(function (url) {
             // check if key was found and set flag accordingly
             console.log(url + ' fetched!')
@@ -3098,7 +4025,7 @@ async function generate_encryption_key_3() {
         })
 
         sequence = sequence.then(function () {
-            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+            return loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
         }).then(function (url) {
             // check if key was found and set flag accordingly
             console.log(url + ' fetched - NOT!')
@@ -3130,7 +4057,7 @@ async function generate_encryption_key_3() {
         })
 
         sequence = sequence.then(function () {
-            return loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey')
+            return loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey')
         }).then(function (url) {
             // check if key was found and set flag accordingly
             console.log(url + ' fetched - NOT!')
@@ -3162,12 +4089,12 @@ async function generate_encryption_key_3() {
         })
 
         console.log("99");
-   // return "";
+    // return "";
 
     // run promise sequence
 
 
-    var one = await loadFromIndexedDB_async("privateKeys", "keyPairs", 'defaultPrivateKey');
+    var one = await loadFromIndexedDB_async("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
     var signing_key_obj;
     var signing_key_jwk;
 
@@ -3256,7 +4183,7 @@ async function generate_encryption_key_3() {
 
     //look for default encryption key
 
-    const call5Promise = loadFromIndexedDB_async("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
+    const call5Promise = loadFromIndexedDB_async("encryptionKeysDB", "encryptionKeysStore", 'defaultSecretKey');
     console.log("100");
     var default_secretkey;
     try {
@@ -3316,11 +4243,11 @@ async function generate_encryption_key_2() {
     var sign_privkey;
     var sign_pubkey;
 
-    var one = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    var one = await loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
 
-    var two = await loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey');
+    var two = await loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey');
 
-    loadFromIndexedDB("privateKeys", "keyPairs", 'defaultPrivateKey').then(function (d) {
+    loadFromIndexedDB("keyPairsDB", "keyPairsStore", 'defaultPrivateKey').then(function (d) {
         console.log(d);
         console.log(typeof d);
         if (typeof d == "undefined") {
@@ -3428,7 +4355,7 @@ async function generate_encryption_key_2() {
             // return savetoDB
             console.log("save defaultkey");
 
-            return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey', newItem);
+            return saveToIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultPrivateKey', newItem);
         } else {
             // buypass to next step
             console.log("bypass");
@@ -3445,7 +4372,7 @@ async function generate_encryption_key_2() {
         newItem.keyId = privatekey_uuid;
         console.log("####: " + JSON.stringify(newItem));
 
-        return saveToIndexedDB('privateKeys', 'keyPairs', privatekey_uuid, newItem);
+        return saveToIndexedDB('keyPairsDB', 'keyPairsStore', privatekey_uuid, newItem);
 
         // having just created a new default signing key, we need to save it
 
@@ -3536,13 +4463,13 @@ async function generate_encryption_key() {
 
         console.log('data to be saved: ' + JSON.stringify(newItem));
         //  '{"keyId":"one","uuid":"two"}'
-        saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem).then(function (response) {
+        saveToIndexedDB_async('encryptionKeysDB', 'encryptionKeysStore', 'keyId', newItem).then(function (response) {
             console.log('data saved');
         }).catch(function (error) {
             console.log(error.message);
         });
 
-        saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+        saveToIndexedDB_async('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem).then(function (response) {
             console.log('data saved');
         }).catch(function (error) {
             console.log(error.message);
@@ -3553,76 +4480,76 @@ async function generate_encryption_key() {
 
         console.log('consider as possible new default key: ' + JSON.stringify(newItem));
 
-        return loadFromIndexedDB("encryptionKeys", "encryptionKeys", 'defaultSecretKey');
+        return loadFromIndexedDB("encryptionKeysDB", "encryptionKeysStore", 'defaultSecretKey');
 
     }).then(function (currentdefaultkey) {
 
-        console.log("background.js: getDefaultSecretKey:found=" + currentdefaultkey);
-        console.log("background.js: getDefaultSecretKey:found=" + JSON.stringify(currentdefaultkey));
+        console.log("getDefaultSecretKey:found=" + currentdefaultkey);
+        console.log("getDefaultSecretKey:found=" + JSON.stringify(currentdefaultkey));
 
     }).catch(function (err) {
-        console.log("background.js: getDefaultSecretKey:err=\"" + err + "\"");
+        console.log("getDefaultSecretKey:err=\"" + err + "\"");
         // error
         // if error was "object not found" asume defaultencryptionkey not set, so set it now.
 
         if (err == "Error: object not found") {
-            console.log("background.js: defaultkey not found, assign this key as it");
+            console.log("defaultkey not found, assign this key as it");
             // make a new default encryption key
 
             //        console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
             newItem.keyId = 'defaultSecretKey';
             console.log('data to be saved on defaultkey: ' + JSON.stringify(newItem));
 
-            saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', newItem);
+            saveToIndexedDB_async('encryptionKeysDB', 'encryptionKeysStore', 'keyId', newItem);
 
         }
         if (err == "Error: objectstore_error") {
-            console.log("background.js: respond to objectstore error");
+            console.log("respond to objectstore error");
 
-            var request4 = indexedDB.open("encryptionKeys", 1);
+            var request4 = indexedDB.open("encryptionKeysDB", 1);
             request4.onupgradeneeded = function (event) {
                 db = event.target.result;
                 db.onerror = function (event) {};
                 // Create an objectStore in this database to keep trusted decryption keys
-                console.log("background.js: getDefaultSecretKey: create objectstore encryptionKeys in encryptionKeys");
-                console.log("background.js: attempt to create objectstore");
-                var objectStore2 = db.createObjectStore("encryptionKeys", {
+                console.log("getDefaultSecretKey: create objectstore encryptionKeysStore in encryptionKeysDB");
+                console.log("attempt to create objectstore");
+                var objectStore2 = db.createObjectStore("encryptionKeysStore", {
                         keyPath: "keyId"
                     });
 
                 objectStore2.createIndex("keyId", "keyId", {
                     unique: true
                 });
-                console.log("background.js: attempt to create objectstore");
+                console.log("attempt to create objectstore");
 
             };
-            console.log("background.js: 4" + request4);
-            console.log("background.js: 4" + JSON.stringify(request4));
+            console.log("4" + request4);
+            console.log("4" + JSON.stringify(request4));
 
             request4.onerror = function (event) {
                 console.log("background.js:getDefaultSecretKey: dp open request error 201");
             };
-            console.log("background.js: 5");
+            console.log("5");
             request4.onsuccess = function (event) {
-                console.log("background.js: 6" + event);
+                console.log("6" + event);
                 var db_1;
                 db_1 = event.target.result;
-                console.log("background.js: 7" + db_1);
+                console.log("7" + db_1);
                 db_1.onerror = function (event) {
                     console.log("background.js:getDefaultSecretKey: db open request error 2");
                 };
                 //   db_1.onsuccess = function (event) {
                 console.log("background.js:getDefaultSecretKey: db open request success 2");
 
-                console.log("background.js: attempt to create objectstore");
-                var objectStore2 = db_1.createObjectStore("encryptionKeys", {
+                console.log("attempt to create objectstore");
+                var objectStore2 = db_1.createObjectStore("encryptionKeysStore", {
                         keyPath: "keyId"
                     });
 
                 objectStore2.createIndex("keyId", "keyId", {
                     unique: true
                 });
-                console.log("background.js: attempt to create objectstore");
+                console.log("attempt to create objectstore");
 
                 console.log("create new default key");
                 makeNewDefaultEncryptionKey().then(function (res) {
@@ -3751,7 +4678,7 @@ function submitAddNewDecryptionKey(e) {
         "ext": true
     };
 
-    saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+    saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem).then(function (response) {
         console.log('data saved');
     }).catch(function (error) {
         console.log(error.message);
@@ -4123,6 +5050,10 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+
+
+
+
 function saveToIndexedDB_async(dbName, storeName, keyId, object) {
 
     console.log("saveToIndexedDB_async:dbname " + dbName);
@@ -4277,6 +5208,175 @@ async function deleteFromIndexedDB(dbName, storeName, keyId) {
 
     //  indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB || window.msIndexedDB;
 
+}
+
+
+async function aes_encrypt(passpharse,cleartext){
+    console.log("aes_encrypt(passpharse,cleartext)" );
+    console.log("aes_encrypt(" + passpharse + "," + cleartext + ")" );
+
+
+
+    console.log('algoEncrypt: ' + JSON.stringify(algoEncrypt));
+
+    // Use a hash of the passphrase as the key
+    var key = passpharse;
+    
+    var iv = new Uint8Array(12);
+    var algoEncrypt = {
+        name: 'AES-GCM',
+        iv: iv,
+        tagLength: 128
+    };
+    
+    // first create a usable key from the passphrase
+    crypto.subtle.digest({name: "SHA-256"}, convertStringToArrayBufferView(passpharse)).then(function(key){
+    console.log("key: " + key);
+    console.log("key: " + JSON.stringify(key));
+    var keyUsages = [
+        'encrypt',
+        'decrypt'
+    ];
+   // key = "gwkMEwco4ZJiZuW2K0_e-g";
+    var usekey =  {
+        "alg": "A128GCM",
+        "ext": true,
+        "k": key,
+        "key_ops": ["encrypt", "decrypt"],
+        "kty": "oct"
+    };
+    
+    console.log('usekey: ' + JSON.stringify(usekey));
+
+    //return window.crypto.subtle.importKey('raw', usekey, {name: 'AES-GCM'}, true, keyUsages);
+    return window.crypto.subtle.importKey("raw", key, {name: "AES-CBC"}, false, ["encrypt", "decrypt"]);
+    
+    }).then(function (key) {
+       // secretKey = key;
+        console.log('background.js:0' + key);
+        //console.log('background.js:0: ' + usekey.k);
+
+    	//console.log('Plain Text1: ' + json_payload);
+    	//console.log('Plain Text1: ' + stringToArrayBuffer(json_payload));
+      
+        
+        return window.crypto.subtle.encrypt(algoEncrypt, key, stringToArrayBuffer("json_payload"));
+
+    }).then(function (cipherText) {
+    	encrypted = cipherText;
+    	console.log('Cipher Text1: ' + encrypted);
+    	console.log('Cipher Text1: ' + _arrayBufferToBase64(encrypted));
+        
+    	
+    	// re-import the key and attempt a decrypt
+        //encryptedText = cipherText;
+        return window.crypto.subtle.importKey('jwk', usekey, {
+            name: 'AES-GCM'
+        }, true, keyUsages);
+ }).then(function(key){
+	 
+	  return window.crypto.subtle.encrypt(algoEncrypt, key, encrypted);
+
+ }).then(function (clear) {
+  	console.log('Clear Text1: ' + clear);
+ 	console.log('Clear Text1: ' + arrayBufferToString(clear));
+ }
+    );
+    
+	
+	
+	
+}
+
+
+function encrypt_data(data,key,vector)
+{
+	var encrypted_data;
+    crypto.subtle.encrypt({name: "AES-CBC", iv: vector}, key, convertStringToArrayBufferView(data)).then(
+        function(result){
+            encrypted_data = new Uint8Array(result);
+            console.log(encrypted_data);
+            //decrypt_data();
+        },
+        function(e){
+            console.log(e.message);
+        }
+    );
+}  
+
+
+function decrypt_data()
+{
+    crypto.subtle.decrypt({name: "AES-CBC", iv: vector}, key, encrypted_data).then(
+        function(result){
+            decrypted_data = new Uint8Array(result);
+            console.log(convertArrayBufferViewtoString(decrypted_data));
+        },
+        function(e){
+            console.log(e.message);
+        }
+    );
+}
+
+
+function stringToArrayBuffer(str) {
+    var buf = new ArrayBuffer(str.length * 2);
+    var bufView = new Uint16Array(buf);
+    for (var i = 0, strLen = str.length; i < strLen; i++) {
+        bufView[i] = str.charCodeAt(i);
+    }
+    return buf;
+}
+
+
+function arrayBufferToString(buf) {
+    return String.fromCharCode.apply(null, new Uint16Array(buf));
+}
+
+
+function _arrayBufferToBase64(buffer) {
+    var binary = '';
+    var bytes = new Uint8Array(buffer);
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+
+function _base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    const buffer = new ArrayBuffer(8);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+
+function convertStringToArrayBufferView(str)
+{
+    var bytes = new Uint8Array(str.length);
+    for (var iii = 0; iii < str.length; iii++)
+    {
+        bytes[iii] = str.charCodeAt(iii);
+    }
+
+    return bytes;
+}
+
+function convertArrayBufferViewtoString(buffer)
+{
+    var str = "";
+    for (var iii = 0; iii < buffer.byteLength; iii++)
+    {
+        str += String.fromCharCode(buffer[iii]);
+    }
+
+    return str;
 }
 
 /**

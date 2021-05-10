@@ -3,13 +3,12 @@
  * all occurrences of each mapped word with its emoji counterpart.
  */
 
+console.log("start Glovebox URL");
+
 /*global sortedEmojiMap*/
 
 // emojiMap.js defines the 'sortedEmojiMap' variable.
 // Referenced here to reduce confusion.
-
-console.log("running substitue.js");
-console.log(sortedEmojiMap);
 const emojiMap = sortedEmojiMap;
 
 /*

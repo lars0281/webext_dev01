@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
 	<head>
+	<meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'">
 		<meta charset="utf-8"/>
+		 <link rel="stylesheet" href="login_popup.css"/>
 		<link rel="stylesheet" href="navigate-collection.css"/>
 	</head>
 	<body>
@@ -97,18 +99,90 @@ List of secure key offers accepted.
 					<button class="add-decryptionkeys" >add-decryptionkeys</button>
 -->
 
+<!-- management actions -->
+
+
+<!-- The user is de facto logged through having his own private signing keys in the local keystore. With these keys present, the user can use the decryption and encryption keys signed by  -->
+
+
+
+	<h3>Log in</h3>
+ The login adds encryption and decryption keys to the browser. The process consists of selection a file containing the keys to add, and the password required to open the file. 
+
+The key database will emptied and any keys present in the database are removed. Use the Import Keys if the key already in the database should be retained. 
+This login operation is equivalent to performing a Flush Keys operation,immediately followed by an Import Keys operation. 
+<br/>
+
+
+<div id="drop-area" ondrop="dropHandler(event);" ondragover="dragOverHandler(event);">
+  <p>Drag one or more files to this Drop Zone ...</p>
+<form class="my-form">
+    <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
+    <input type="file" id="fileElem" multiple accept="image/*" onchange="handleFiles(this.files)">
+    <label class="button" for="fileElem">Select some files</label>
+  </form>
+</div>
+
+	<br/>
+				<button class="login" id="login2">login2</button>
+				<button class="login">login</button>
+	<br/>
+	<br/>
+	<form>
+	<br/>file decryption password: 
+		<input id="loginFilePwd" type="test" size="30" />
+		<br/>
+		<input id="loginContentFile" type="file" accept="application/json" />
+		
+	</form>
+	<br/>
+	
+	<input type="file" id="loginFileElemDISABLED" multiple accept="application/json" style="display:none" onchange="OOOOhandleFiles(this.files)">
+<a href="#" id="loginFileSelect">Select some files</a>
+	
+	
+	<!-- Just as login is through adding keys, logout is through removing them. -->
+	<h3>Log out</h3>
+	A Logout backups all encryption and decryption keys to a local password-protected file, before removing them. 
+
+	<br/>
+			
+				<form>
+	<br/>file encryption password: 
+		<input id="logoutFilePwd" type="text" size="30" />
+		<br/>
+				<button class="logout">logout</button>
+		
+	</form>
+			
+			
+			A "Backup Keys", followed by a "Flush Keys" does the same thing as this Logout operation. 
+
+	<!-- -->
+	<h3>Flush Keys</h3>
+	This removes all encryption and decryption keys. Some browser clean-up operations undertaken by for example cookie-wiping utilities may perform the same function. 
+	It is therefore desirable to have all the keys backed up prior to runing this operation. 
+
+	<br/>
+				<button class="flush-all-keys">flush all keys</button>
+
 
 					
-	<h3>Backup keys</h3>
-	The database of keys is kept in a database beloging to the browser. Some clean-up operations undertaken by for example cookie-wiping utilities can also remove this database. It is therefore desirable to have all the keys be backedup. This prosedure creates a JSON text file contaning all encryption and decryption key.
+	<!-- -->
+	<h3>Backup Keys</h3>
+	The database of keys is kept in a database belonging to the browser. Some clean-up operations undertaken by for example cookie-wiping utilities may remove this database. It is therefore desirable to have all the keys be backedup. 
+	This prosedure creates an encrypted JSON text file containing all encryption and decryption keys. The file is intended to be used for subsequent logins.
 	
-			<form class="backup-all-keys" >
-				<button class="backup-all-keys">backup key database</button>
-			</form>
+			<!-- Clicking this button must not regenerate the page, since that will interfere with the complete backup -->
+			<input id="backupFilePwd" type="text" size="30" />
+	<br/>
+				<button class="backup-all-keys" id="backup-all-keys_button">backup key database</button>
 
-	<h3>Import keys</h3>
-		
-			<input id="contentFile" type="file" accept="application/json" />
+	<h3>Import Keys</h3>
+		Add encryption and decryption keys to the database, from a file. 
+		<input id="importFilePwd" type="text" size="30" />
+		<br/>
+			<input id="importContentFile" type="file" accept="application/json" />
 	
 				
 

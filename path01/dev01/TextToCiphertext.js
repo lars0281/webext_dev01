@@ -142,6 +142,14 @@ sel.getRangeAt(i).endContainer.textContent =  end;
 
     }
 
+  	try {
+		console.log("remove listener");
+	    browser.runtime.onMessage.removeListener(textToCiphertext);
+	} catch (e) {
+		console.log(e);
+	}
+
+    
     console.log("pageWriterHTMLtoCiphertext:eatPageReceiver: completed");
 
 }

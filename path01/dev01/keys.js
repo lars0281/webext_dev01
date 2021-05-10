@@ -56,7 +56,7 @@ class Keys {
 
         console.log("25");
 
-        var dbRequest = indexedDB.open("trustedDecryptionKeys");
+        var dbRequest = indexedDB.open("gloveboxKeys");
 
         dbRequest.onerror = function (event) {
             reject(Error("Error text"));

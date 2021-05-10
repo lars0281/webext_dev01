@@ -1,10 +1,5 @@
 
-console.log("start");
-
-
-
-
-
+console.log("start Glovebox background");
 
 // Start the recursion from the body tag. create highlight of Glovebox tags
 markGlovebox(document.body);
@@ -19,38 +14,64 @@ let indexedDB;
 
 // key stores
 
-// trustedDecryptionKeys decryptionKeys keyPath
-// encryptionKeys encryptionKeys keyId
+// gloveboxKeys decryptionKeys keyPath
+// gloveboxKeys encryptionKeys keyId
 // privateKeys keyPairs keyId
 
 // transaction stores
 
 // encryptionKeysSecureOffers createdKeyOffers refId
 
-// sept 30 2020
+// Mar 18 2021
 
-//
+
+// context menu related
 browser.contextMenus.create({
     id: "glovebox-encrypttextonly",
-    title: "encrypt_textonly",
+    title: "encrypt selection as text only",
     contexts: ["selection"]
 });
 
 browser.contextMenus.create({
     id: "glovebox-encrypthtml",
-    title: "encrypt_html",
+    title: "encrypt selection as html only",
     contexts: ["selection"]
 });
 
 browser.contextMenus.create({
-    id: "glovebox-decrypttextonly",
-    title: "decrypt textonly",
+    id: "glovebox-encrypt-embeded",
+    title: "encrypt selection inlcuding embeded",
     contexts: ["selection"]
 });
 
 browser.contextMenus.create({
-    id: "glovebox-decrypthtml",
-    title: "decrypt html",
+    id: "glovebox-encrypt-linked",
+    title: "encrypt selection including both embeded and linked",
+    contexts: ["selection"]
+});
+
+browser.contextMenus.create({
+    id: "glovebox-decrypttextonly_temporarily",
+    title: "decrypt textonly temporarily (safe mode)",
+    contexts: ["selection"]
+});
+
+browser.contextMenus.create({
+    id: "glovebox-decrypttextonly_permanently",
+    title: "decrypt textonly permanently",
+    contexts: ["selection"]
+});
+
+//
+browser.contextMenus.create({
+    id: "glovebox-decrypthtml_temp",
+    title: "decrypt html temporarily",
+    contexts: ["selection"]
+});
+
+browser.contextMenus.create({
+    id: "glovebox-decrypthtml_perm",
+    title: "decrypt html permanently",
     contexts: ["selection"]
 });
 
@@ -125,33 +146,56 @@ browser.browserAction.onClicked.addListener(() => {
 
 // listener for message sent from the admin page of the plugin
 browser.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+
     console.log("received from page:  message: " + JSON.stringify(message) + " message.type=" + message.type);
 
     console.log("request:" + message.request);
 
-    if (message && message.request == 'generate_encryption_key') {
-        // call out to the function generate_encryption_key
-        var newkey;
-        indexedDB = window.indexedDB || window.webkitIndexedDB ||
-            window.mozIndexedDB || window.msIndexedDB;
-        generate_encryption_key().then(function (key) {
-            console.log("key returned");
-            newkey = key;
-            console.log(key);
-        })
+    console.log("request:" + message.linkurl);
 
+    try {
+
+        if (message && message.request == 'generate_encryption_key') {
+            console.log("request: generate_encryption_key: begin");
+
+            // call out to the function generate_encryption_key
+            var newkey;
+            indexedDB = window.indexedDB || window.webkitIndexedDB ||
+                window.mozIndexedDB || window.msIndexedDB;
+            generate_encryption_key().then(function (key) {
+                console.log("key returned");
+                newkey = key;
+                console.log(key);
+            })
+            console.log("request: generate_encryption_key: end");
+
+        }
+
+        if (message && message.type == 'page') {
+            console.log("page_message:");
+            var page_message = message.message;
+            console.log("page_message:" + page_message);
+            // Simple example: Get data from extension's local storage
+            //var result = localStorage.getItem('whatever');
+            var result = JSON.parse('{"test":"one"}');
+            // Reply result to content script
+            sendResponse(result);
+        }
+
+        if (message && message.request == 'skinny_lookup' && message.linkurl != '') {
+            console.log("look up :" + message.linkurl);
+            var true_destination_url = "";
+            true_destination_url = skinny_lookup(message.linkurl);
+            sendResponse({
+                true_destination_url: true_destination_url,
+                linkUrl: message.linkurl,
+                success: "true"
+            });
+        }
+    } catch (e) {
+        console.log(e);
     }
 
-    if (message && message.type == 'page') {
-        console.log("page_message:");
-        var page_message = message.message;
-        console.log("page_message:" + page_message);
-        // Simple example: Get data from extension's local storage
-        //var result = localStorage.getItem('whatever');
-        var result = JSON.parse('{"test":"one"}');
-        // Reply result to content script
-        sendResponse(result);
-    }
 });
 
 if (!window.indexedDB) {
@@ -203,7 +247,6 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
     // By key Recipient
     // accept a token containing a decryption key transmitted securely.
     // The key is from
-
     else if (info.menuItemId === "consume-GloveboxSecureKeyTokenFromAcceptedOfferToken") {
         console.log("background.js: consume-GloveboxSecureKeyTokenFromAcceptedOfferToken");
 
@@ -215,15 +258,10 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
     // consume the token GloveboxAcceptedSecureKeyOfferToken
     // issue the decryption key to the recipient.
     // Use the public RSA key contained in this token to encrypt the key
-
     else if (info.menuItemId === "consume-GloveboxAcceptedSecureKeyOfferToken") {
-    	
-    	consume_GloveboxAcceptedSecureKeyOfferToken();
+        consume_GloveboxAcceptedSecureKeyOfferToken();
 
-    }
-    
-    
-    else if (info.menuItemId === "paste-GloveboxSecureKeyOfferToken") {
+    } else if (info.menuItemId === "paste-GloveboxSecureKeyOfferToken") {
         console.log("background.js: glovebox-GloveboxSecureKeyOfferToken");
 
         paste_GloveboxSecureKeyOfferToken();
@@ -234,417 +272,211 @@ browser.contextMenus.onClicked.addListener((info, tab) => {
     // consume a GloveboxSecureKeyOfferToken token
     // issue a GloveboxAcceptedSecureKeyOfferToken token
     else if (info.menuItemId === "consume-GloveboxSecureKeyOfferToken") {
+        consume_GloveboxSecureKeyOfferToken();
+    } else if (info.menuItemId === "glovebox-acceptdecryptiontoken_open") {
+        glovebox_acceptdecryptiontoken_open();
+    } else if (info.menuItemId === "glovebox-pasteGloveboxOpenKeyToken") {
+        glovebox_pasteGloveboxOpenKeyToken();
 
-    	
-    	consume_GloveboxSecureKeyOfferToken();
     }
 
-    else if (info.menuItemId === "glovebox-acceptdecryptiontoken_open") {
-    	
-    	glovebox_acceptdecryptiontoken_open();
-     }
-
-    else if (info.menuItemId === "glovebox-pasteGloveboxOpenKeyToken") {
-    	
-    	glovebox_pasteGloveboxOpenKeyToken();
-   
-    }
-
-    
+    // *** ENCRYPT ***
     // encrypt a plain text selection
-    
     else if (info.menuItemId === "glovebox-encrypttextonly") {
-    	
-    	glovebox_encrypttextonly();
-    
+        //        glovebox_encrypttextonly(info);
+        glovebox_encryptPlaintext(info, "text");
+
+    } else if (info.menuItemId === "glovebox-encrypthtml") {
+        //        glovebox_encrypthtml();
+        glovebox_encryptPlaintext(info, "html");
+
+    } else if (info.menuItemId === "glovebox-encrypt-embeded") {
+        // encrypt the selected HTML and all embeded content (such as icons and other images referenced with with "src" attribute)
+        glovebox_encryptPlaintext(info, "embeded");
+
+    } else if (info.menuItemId === "glovebox-encrypt-linked") {
+        // Encrypt the selected HTML and all linked and embedded content (such as icons and other images referenced with with "src" attribute)
+        // This is likely to produce very large page documents but there are reasonable use cases for this kind of functionality. Most notable
+        // web-based email where a file attachment should be read into the cipher text...
+        // and later be presented to the user as a clickable download link in the decrypted email, without ever appearing as an attachment.
+        // The encrypted message should appear as a (possibly very long) plain text message in transit and storage and no where real itself as containing a file.
+        glovebox_encryptPlaintext(info, "linked");
+
+        // *** DECRYPT ***
+
+        // This take the Glovebox encrypted token and places it inside Glovebox markup
+        // structure, along with the decrypted content.
+        // An event listener is placed on the markup where by under some
+        // circumstance, the decrypted content is deleted.This to prevent the accidental
+        // dissemination of sensitive data.
+        // These circumstances are:
+    } else if (info.menuItemId === "glovebox-decrypttextonly_temporarily") {
+        //glovebox_decrypttextonly_temporarily(info);
+        glovebox_decrypthtml(info, "text", "temp");
+
+    } else if (info.menuItemId === "glovebox-decrypttextonly_permanently") {
+        //glovebox_decrypttextonly_permanently(info);
+        glovebox_decrypthtml(info, "text", "perm");
+    } else if (info.menuItemId === "glovebox-decrypthtml_temp") {
+        console.log("calling glovebox_decrypthtml");
+        glovebox_decrypthtml(info, "html", "temp");
+    } else if (info.menuItemId === "glovebox-decrypthtml_perm") {
+        console.log("calling glovebox_decrypthtml");
+        glovebox_decrypthtml(info, "html", "perm");
     }
 
-    else if (info.menuItemId === "glovebox-encrypthtml") {
-    	glovebox_encrypthtml();
-    	    }
-
-    else if (info.menuItemId === "glovebox-decrypttextonly") {
-
-    	glovebox_decrypttextonly();
-
-    }
-
-    // This take the Glovebox encrypted token and places it inside Glovebox markup 
-    // structure, along with the decrypted content.
-    // An event listener is placed on the markup where by under some 
-    // circumstance, the decrypted content is deleted.This to prevent the accidental 
-    // dissemination of sensitive data. 
-    // These circumstances are: 
-    else if (info.menuItemId === "glovebox-decrypthtml") {
-    	 console.log("calling glovebox_decrypthtml");
-    	glovebox_decrypthtml();
-    }
-
-    // This removes any Glveobox marku, leaving the decrypted content in place ofthe enciphered content.
-    // The aim is to have a procedure that is completely reversible. 
-    
+    // This removes any Glovebox markup, leaving the decrypted content in place ofthe enciphered content.
+    // The aim is to have a procedure that is completely reversible.
     else if (info.menuItemId === "glovebox-removedecrypthtml") {
-    	
-    	glovebox_removedecrypthtml();
-
+        glovebox_removedecrypthtml();
     }
 
-    
+    console.log("#### request completed");
 });
 
+function glovebox_encryptPlaintext(info, contenttype) {
+    // contenttype
+    // permitted values: text, html, embeded, linked
 
+    console.log("glovebox_encryptPlaintext(info," + contenttype + ")");
 
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
 
+    var request = indexedDB.open("decryptionKeysDB", 1);
+    request.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("create objectstore decryptionKeysStore in decryptionKeysDB");
+        var objectStore2 = db.createObjectStore('decryptionKeysStore', {
+                keyPath: 'keyId'
+            });
 
-
-
-function glovebox_encrypthtml(){
-
-// use the selected text to read out the key for this user from the
-// database
-console.log("glovebox-encrypthtml");
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
         });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
     };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
+    request.onerror = function (event) {
+        console.log("dp open request error 201");
     };
-};
+    request.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("db open request success 2");
+        };
+    };
 
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
+    var request2 = indexedDB.open('encryptionKeysDB', 1);
+    request2.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("create objectstore encryptionKeysStore in encryptionKeysDB");
+        var objectStore2 = db.createObjectStore('encryptionKeysStore', {
+                keyPath: 'keyId'
+            });
+
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
         });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
     };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
+    request2.onerror = function (event) {
+        console.log("dp open request error 201");
     };
-};
-
-// call out to the tab to collect the complete html selected
-var replacement_text = new String("");
-
-var selection_html;
-var usekey;
-var usekey_uuid;
-
-console.log("###calling GetSelectedHTML.js");
-
-// execute script in active tab
-browser.tabs.executeScript({
-    file: "GetSelectedHTML.js",
-    allFrames: true
-}).then(function (result) {
-    console.log("background.js:onExecuted: result: " + JSON.stringify(result));
-    // query for the one active tab
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    console.log("###### GetSelectedHTML response " + JSON.stringify(tabs));
-    // send message to the active tab
-    return browser.tabs.sendMessage(tabs[0].id, {
-        GetSelectedHTML: "Glbx_marker"
-    });
-}).then(function (res) {
-    // console.log("###### getHTML response " + res);
-    console.log("###### GetSelectedHTML response " + JSON.stringify(res));
-    selection_html = res.response.doc;
-    // procceed with compression and encryption
-    console.log("###### GetSelectedHTML response: " + selection_html);
-    // console.log("###### GetSelectedHTML response: " +
-    // JSON.stringify(selection_html));
-
-    return getDefaultSecretKey();
-}).then(function (response) {
-
-    console.log('2 default encryption key loaded OK: ' + JSON.stringify(response));
-
-    usekey = response.key_jwk;
-    usekey_uuid = response.uuid;
-
-    console.log("##usethiskey: " + usekey.k);
-    console.log("##usethiskey(uuid): " + usekey_uuid);
-    // proceed with encryption
-
-    let ciphertext;
-    let counter;
-
-    // var iv = window.crypto.getRandomValues(new Uint8Array(12));
-
-    var keyUsages = [
-        'encrypt',
-        'decrypt'
-    ];
-
-    var secretKey;
-    var exportedKey;
-    var encryptedText;
-
-    return window.crypto.subtle.importKey('jwk', usekey, {
-        name: 'AES-GCM'
-    }, true, keyUsages);
-}).then(function (key) {
-    secretKey = key;
-    console.log('background.js:0' + key);
-    console.log('background.js:0: ' + usekey.k);
-
-    console.log('background.js:0: source text length: ' + selection_html.length);
-    var shorty_out = new Shorty();
-    var compressed_plaintext = shorty_out.deflate(selection_html);
-
-    console.log('background.js:0: compressed text: ' + compressed_plaintext);
-    console.log('background.js:0: compressed text length: ' + compressed_plaintext.length);
-
-    console.log('background.js:0: compressed text arraybuffer: ' + stringToArrayBuffer(compressed_plaintext));
-    console.log('background.js:0: compressed text arraybuffer: ' + JSON.stringify(stringToArrayBuffer(compressed_plaintext)));
-    console.log('background.js:0: compressed text arraybuffer: ' + stringToArrayBuffer(compressed_plaintext));
-    var iv = new Uint8Array(12);
-
-    var algoEncrypt = {
-        name: 'AES-GCM',
-        iv: iv,
-        tagLength: 128
+    request2.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("background.js: db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("background.js: db open request success 2");
+        };
     };
-    // return window.crypto.subtle.encrypt(algoEncrypt, key,
-    // stringToArrayBuffer(plaintext));
-    return window.crypto.subtle.encrypt(algoEncrypt, key, stringToArrayBuffer(compressed_plaintext));
 
-}).then(function (cipherText) {
+    // call out to the tab to collect the complete html selected
+    var replacement_text = new String("");
 
-    // the replacement text is a concatenation of the cipher text and
-    // additional referecens. These references are there to both
-    // uniquely identify the text content as having been encrypted by
-    // Glovebox and provide whatever information is required to identify
-    // the key needed to decrypt it.
+    var selection_html;
+    var usekey;
+    var usekey_uuid;
+    // ID of tab in use
+    var tab_id = "";
 
-    replacement_text = replacement_text + ":Glovebox:" + convertBase64ToPsuedoText(usekey_uuid + ":" + _arrayBufferToBase64(cipherText)) + ':';
+    console.log("###calling GetSelectedHTML.js for contenttype=" + contenttype);
 
-    console.log("usethiskey(uuid): " + usekey_uuid);
-
-    console.log('Cipher Text (base64 enc): ' + _arrayBufferToBase64(cipherText));
-    console.log("### calling HTMLToCiphertext.js");
-    return browser.tabs.executeScript({
-        file: "HTMLToCiphertext.js"
-    });
-}).then(function (result) {
-    console.log("background.js:onExecuted4: We made it ....");
-    console.log("background.js:onExecuted4: result: " + result);
-  //  console.log("backgroupd.js:onExecuted4:selected_text: " + selected_text);
-    console.log("backgroupd.js:onExecuted4:replacement_text: " + replacement_text);
-
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    browser.tabs.sendMessage(tabs[0].id, {
-        html_to_ciphertext_replacement: replacement_text
-
-    });
-}).then(function (r) {
-    // call to remove page listener
-
+    // execute script in active tab
     browser.tabs.executeScript({
-        file: "RemoveTabOnMessageListenerGetSelectedHTML.js",
+        file: "GetSelectedHTML.js",
         allFrames: true
-    });
-
-}).then(function (r) {
-    // call to remove page listener
-
-    browser.tabs.executeScript({
-        file: "RemoveTabOnMessageListenerHTMLToCiphertext.js",
-        allFrames: true
-    });
-});
-}
-
-
-function glovebox_encrypttextonly(){
-
-console.log("glovebox-encrypttextonly");
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
+    }).then(function (result) {
+        console.log("background.js:onExecuted: result: " + JSON.stringify(result));
+        // query for the one active tab
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
         });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
+    }).then(function (tabs) {
+        console.log("###### GetSelectedHTML response " + JSON.stringify(tabs));
+        // send message to the active tab
+        tab_id = tabs[0].id;
+        return browser.tabs.sendMessage(tabs[0].id, {
+            GetSelectedHTML: "Glbx_marker6",
+            contenttype: contenttype
         });
+    }).then(function (res) {
+        // console.log("###### getHTML response " + res);
+        console.log("###### GetSelectedHTML response " + JSON.stringify(res));
+        console.log("###### GetSelectedHTML response " + JSON.stringify(res.response));
+        console.log("###### GetSelectedHTML response " + JSON.stringify(res.response.doc));
+        selection_html = res.response.doc;
+        // procceed with compression and encryption
+        console.log("###### GetSelectedHTML response: " + selection_html);
+        // console.log("###### GetSelectedHTML response: " +
+        // JSON.stringify(selection_html));
 
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
+        return getDefaultSecretKey();
+    }).then(function (response) {
 
+        console.log('2 default encryption key loaded OK: ' + JSON.stringify(response));
 
-// use selection text functionality - all markup contained in the selection will be ignored.
-console.log("info = " + JSON.stringify(info));
-console.log("info.selectionText = " + info.selectionText);
+        usekey = response.key_jwk;
+        usekey_uuid = response.uuid;
 
-var selected_text = new String(info.selectionText);
-console.log("backgroupd.js:selected_text: " + selected_text);
+        console.log("##usethiskey: " + usekey.k);
+        console.log("##usethiskey(uuid): " + usekey_uuid);
+        // proceed with encryption
 
-// pull out the complete html of the selection
+        let ciphertext;
+        let counter;
 
+        // var iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-console.log("background.js:selected_text: " + selected_text);
-// ok, make call to tab to grab the complete selection html
-var replacement_text = new String("");
-var usekey;
-var usekey_uuid;
-console.log('attempt 2 key loaded OK: ');
+        var keyUsages = [
+            'encrypt',
+            'decrypt'
+        ];
 
-// pickup default encryption key from database
-// loadFromIndexedDB('encryptionKeys', 'encryptionKeys',
-// 'defaultSecretKey').then(function (response) {
-getDefaultSecretKey().then(function (response) {
+        var secretKey;
+        var exportedKey;
+        var encryptedText;
 
-    console.log('2 default encryption key loaded OK: ' + JSON.stringify(response));
-
-    usekey = response.key_jwk;
-    usekey_uuid = response.uuid;
-
-    console.log("##usethiskey: " + usekey.k);
-    console.log("##usethiskey(uuid): " + usekey_uuid);
-    // proceed with encryption
-
-
-    /*
-     * Store the calculated ciphertext and counter here, so we can
-     * decrypt the message later.
-     */
-    let ciphertext;
-    let counter;
-
-    var algoKeyGen = {
-        name: 'AES-GCM',
-        // length: 256
-        length: 128
-    };
-    // var iv = window.crypto.getRandomValues(new Uint8Array(12));
-    var iv = new Uint8Array(12);
-    var algoEncrypt = {
-        name: 'AES-GCM',
-        iv: iv,
-        tagLength: 128
-    };
-
-    console.log('algoEncrypt: ' + JSON.stringify(algoEncrypt));
-
-    var keyUsages = [
-        'encrypt',
-        'decrypt'
-    ];
-    console.log('keyUsages: ' + JSON.stringify(keyUsages));
-
-    var secretKey;
-    var exportedKey;
-    var encryptedText;
-
-    // window.crypto.subtle.generateKey(algoKeyGen, true,
-    // keyUsages).then(function (key) {
-
-    console.log('import: ' + JSON.stringify(usekey));
-
-    window.crypto.subtle.importKey('jwk', usekey, {
-        name: 'AES-GCM'
-    }, true, keyUsages).then(function (key) {
+        return window.crypto.subtle.importKey('jwk', usekey, {
+            name: 'AES-GCM'
+        }, true, keyUsages);
+    }).then(function (key) {
         secretKey = key;
         console.log('background.js:0' + key);
         console.log('background.js:0: ' + usekey.k);
 
-        console.log('background.js:0: source text length: ' + selected_text.length);
+        console.log('background.js:0: source text length: ' + selection_html.length);
         var shorty_out = new Shorty();
-        var compressed_plaintext = shorty_out.deflate(selected_text);
+        var compressed_plaintext = shorty_out.deflate(selection_html);
 
         console.log('background.js:0: compressed text: ' + compressed_plaintext);
         console.log('background.js:0: compressed text length: ' + compressed_plaintext.length);
@@ -652,1447 +484,93 @@ getDefaultSecretKey().then(function (response) {
         console.log('background.js:0: compressed text arraybuffer: ' + stringToArrayBuffer(compressed_plaintext));
         console.log('background.js:0: compressed text arraybuffer: ' + JSON.stringify(stringToArrayBuffer(compressed_plaintext)));
         console.log('background.js:0: compressed text arraybuffer: ' + stringToArrayBuffer(compressed_plaintext));
+        var iv = new Uint8Array(12);
 
+        var algoEncrypt = {
+            name: 'AES-GCM',
+            iv: iv,
+            tagLength: 128
+        };
+        // return window.crypto.subtle.encrypt(algoEncrypt, key,
+        // stringToArrayBuffer(plaintext));
         return window.crypto.subtle.encrypt(algoEncrypt, key, stringToArrayBuffer(compressed_plaintext));
 
     }).then(function (cipherText) {
 
-        encryptedText = cipherText;
-        console.log('Cipher Text1: ' + arrayBufferToString(cipherText));
-        console.log('background.js:secretKey 1' + secretKey);
-        console.log('background.js:secretKey 1' + JSON.stringify(secretKey));
-        return window.crypto.subtle.exportKey('jwk', secretKey);
-    }).then(function (expkey) {
-        console.log('background.js:secretKey 2' + secretKey);
-        exportedKey = expkey.kgene
-            console.log('key export: ' + JSON.stringify(expkey));
-        exportedKey = expkey.k;
-        return expkey.k;
-    }).catch(e => {
-        console.log('There has been a problem with your key export operation: ' + e.message);
-    }).then(function (expkeybase64) {
-        // carry on the rewriting
+        // the replacement text is a concatenation of the cipher text and
+        // additional referecens. These references are there to both
+        // uniquely identify the text content as having been encrypted by
+        // Glovebox and provide whatever information is required to identify
+        // the key needed to decrypt it.
 
-        // rewrite the base64 text to somethng that looks less
-        // suspicious
-        console.log("create psuedo_text from: " + usekey_uuid + ":" + _arrayBufferToBase64(encryptedText));
-        var psuedo_text = convertBase64ToPsuedoText(usekey_uuid + ":" + _arrayBufferToBase64(encryptedText));
-
-        console.log("psuedo_text: " + psuedo_text);
-        console.log("psuedo_text(resolved: " + convertPsuedoTextToBase64(psuedo_text));
-
-        // the replacement text is a concatenation of the cipher text
-        // and additional referecens. These references are there to both
-        // uniquely identify the text content as having been encrypted
-        // by Glovebox and provide whatever information is required to
-        // identify the key needed to decrypt it.
-
-        // var replacement_text = new String("Glovebox:" + exported key
-        // in base 64 + _arrayBufferToBase64(cipherText));
-
-        // create the replacement text
-        // replacement_text = replacement_text + ":Glovebox:" +
-        // SHA1(exportedKey) + ":" + _arrayBufferToBase64(encryptedText)
-        // + ":" + exportedKey + ":";
-        replacement_text = replacement_text + ":Glovebox:" + psuedo_text + ':';
+        replacement_text = replacement_text + ":Glovebox:" + convertBase64ToPsuedoText(usekey_uuid + ":" + _arrayBufferToBase64(cipherText)) + ':';
 
         console.log("usethiskey(uuid): " + usekey_uuid);
 
-        console.log('Cipher Text (base64 enc): ' + _arrayBufferToBase64(encryptedText));
-        console.log('Psuedo Text (base64 enc): ' + psuedo_text);
-        console.log("###calling TextToCiphertext.js");
-
-        
-        // call out to the JS which will carry out the actual replacement. 
+        console.log('Cipher Text (base64 enc): ' + _arrayBufferToBase64(cipherText));
+        console.log("### calling HTMLToCiphertext.js for contenttype=" + contenttype);
         return browser.tabs.executeScript({
-            file: "TextToCiphertext.js"
+            file: "HTMLToCiphertext.js"
         });
     }).then(function (result) {
         console.log("background.js:onExecuted4: We made it ....");
         console.log("background.js:onExecuted4: result: " + result);
-        console.log("backgroupd.js:onExecuted4:selected_text: " + selected_text);
+        //  console.log("backgroupd.js:onExecuted4:selected_text: " + selected_text);
         console.log("backgroupd.js:onExecuted4:replacement_text: " + replacement_text);
-        return browser.tabs.query({
-            active: true,
-            currentWindow: true
+        console.log("backgroupd.js:onExecuted4:replacement_type: " + contenttype);
+        console.log("id of active tab: " + tab_id);
+        //    return browser.tabs.query({
+        //        active: true,
+        //        currentWindow: true
+        //    });
+        //}).then(function (tabs) {
+        //	console.log("tab query result: " + JSON.stringify(tabs));
+
+        browser.tabs.sendMessage(tab_id, {
+            html_to_ciphertext_replacement: replacement_text,
+            HTMLToCiphertext: "Glbx_marker2",
+            contenttype: contenttype
+
         });
-    }).then(function (tabs) {
-        browser.tabs.sendMessage(tabs[0].id, {
-            text_replacement_text: replacement_text,
-            regex: selected_text
+    }).then(function (r) {
+        // call to remove page listener
+    	console.log("remove pagelistener.");
+        browser.tabs.executeScript({
+            file: "RemoveTabOnMessageListenerGetSelectedHTML.js",
+            allFrames: true
         });
 
     }).then(function (r) {
         // call to remove page listener
-        console.log("###calling RemoveTabOnMessageListenerTextToCiphertext.js");
 
         browser.tabs.executeScript({
-            file: "RemoveTabOnMessageListenerTextToCiphertext.js",
+            file: "RemoveTabOnMessageListenerHTMLToCiphertext.js",
             allFrames: true
         });
-
     });
-
-});
 }
 
 
-function glovebox_pasteGloveboxOpenKeyToken(){
 
-console.log("background.js: glovebox-pasteGloveboxOpenKeyToken");
-// insert an importabe decryption token
-// suitable for use in a chat window
 
+function glovebox_pasteGloveboxOpenKeyToken() {
 
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
+    console.log("background.js: glovebox-pasteGloveboxOpenKeyToken");
+    // insert an importabe decryption token
+    // suitable for use in a chat window
 
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
-        });
 
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-//
-
-
-// generate a Globebox descryption token form the default encryption key
-var glovebox_key_token_openform = "";
-// getDefaultSecretKey
-getDefaultSecretKey().then(function (obj) {
-    // use the key
-
-    console.log("default key: " + JSON.stringify(obj));
-    // Glovebox keytoken open
-    // syntax:":CloveboxToken:<username>:<keyuuid>:<base64(decryptionkey)>:"
-    // Glovebox keytoken open
-    // sample:":CloveboxToken:username01@domain.org:asasd-bb-erw-w45gvs-5asd:fsdawwefwrwtgRgevWefsfsetg3563rgvegreRErgvE==:"
-
-
-    glovebox_key_token_openform = ':GloveboxOpenKeyToken:username01@domain.org:' + obj.uuid + ':' + obj.key + ':';
-
-    console.log("created token " + glovebox_key_token_openform);
-    console.log("###calling PasteGloveboxOpenKeyToken.js");
-
-    return browser.tabs.executeScript({
-        file: "PasteGloveboxOpenKeyToken.js"
-    });
-}).then(function (result) {
-    console.log("backgroupd.js:onExecuted4:glovebox_key_token_openform: " + glovebox_key_token_openform);
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    browser.tabs.sendMessage(tabs[0].id, {
-        PasteGloveboxOpenKeyToken_text: glovebox_key_token_openform
-    });
-}).then(function (r) {
-    // call to remove page listener
-    console.log("###calling RemoveTabOnMessageListenerPasteTokenText.js");
-
-    browser.tabs.executeScript({
-        file: "RemoveTabOnMessageListenerPasteTokenText.js",
-        allFrames: true
-    });
-
-});
-}
-
-function  glovebox_removedecrypthtml(){
-console.log("glovebox-removedecrypthtml");
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-// recreate datastore if needed - fix this later
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-// the selection likely contains only a part for the Glovebox text. Or
-// possibly more than the Glovebox text. Expand or narrow as required.
-
-// call out to the tab to get the complete text
-var glovebox_token_ciphertext = "";
-var replacement_html = "";
-// console.log("background.js:decrypt: call to GetHTML");
-console.log("###calling Get_GloveboxCiphertext.js");
-
-// execute script in active tab
-browser.tabs.executeScript({
-    file: "Get_GloveboxCiphertext.js",
-    allFrames: true
-}).then(
-    function (result) {
-    console.log("background.js:onExecuted: result: " + JSON.stringify(result));
-    // query for the one active tab
-    browser.tabs.query({
-        active: true,
-        currentWindow: true
-    }).then(function (tabs) {
-        // send message to the active tab
-        browser.tabs.sendMessage(tabs[0].id, {
-            GetGloveboxCiphertext: "Glbx_marker"
-        }).then(function (res) {
-            console.log("###### GetGloveboxCiphertext response " + JSON.stringify(res));
-            glovebox_token_ciphertext = convertPsuedoTextToBase64(res.response.doc);
-            console.log("###### glovebox_token_ciphertext " + glovebox_token_ciphertext);
-
-            // which key to use for decryption
-
-            // get info out of token
-            const decryptkey_uuid_regex = new RegExp(':Glovebox:([^:]*):', 'm');
-
-            // var decryptkey_uuid_regex = /:Glovebox:([^:]*):/g;
-            var decryptkey_uuid = "";
-            if ((match3 = decryptkey_uuid_regex.exec(glovebox_token_ciphertext)) != null) {
-                decryptkey_uuid = match3[1];
-                console.log("decryptkey id: " + decryptkey_uuid);
-            }
-
-            // get the deckryption key
-
-            return loadFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', decryptkey_uuid);
-        }).then(function (response) {
-            console.log("got key object: " + response);
-            console.log("got key object: " + JSON.stringify(response));
-
-            var usekey = response.key_jwk;
-            var keyUsages = [
-                'encrypt',
-                'decrypt'
-            ];
-            // import the key
-            return window.crypto.subtle.importKey('jwk', usekey, {
-                name: 'AES-GCM'
-            }, true, keyUsages);
-
-        }).catch(function (status) {
-
-            console.log("handle error when decryotion key is not found ");
-
-        }).then(function (key) {
-
-            console.log("key imported, use it" + key);
-
-            // which key to use for decryption
-            var ciphertext_raw_regex = /:([^:]*):$/g;
-            var ciphertext_raw = "";
-            if ((match3 = ciphertext_raw_regex.exec(glovebox_token_ciphertext)) != null) {
-
-                console.log("###### getHTML response count " + match3.length);
-
-                var ciphertextlength = match3[0].length;
-                // :Glovebox:47b83c2c-5d3b-3823-2fc2-d8256aeb7f73:JfBMxr2rcjZwSogJfVU/SGBEv5igNXyakVdaLoohqN7V6M2mVW8Y2Xqjw13+ch1rVX7K16STX/4yktRsJnHImkQ3LynnTPpW7YnAEpt5AnfrDgNZxSH03dipy0CZDs7m/eJU+Fwvixw=:
-                console.log("start: " + match3.index);
-                // console.log("end: " + ciphertext_raw);
-                console.log("length: " + match3[0].length);
-
-                var text_end_pos = match3.index + match3[0].length;
-                var text_start_pos = match3.index;
-
-                ciphertext_raw = match3[0].substring(1, match3[0].length - 1);
-                console.log("######  ciphertext_raw: " + ciphertext_raw);
-
-            }
-
-            console.log('glovebox-decrypthtml:attempt to decrypt: ' + ciphertext_raw.replace(/[^\w\s\+=\/]/gi, ''));
-            console.log('glovebox-decrypthtml:attempt to decrypt: ' + ciphertext_raw.replace(/[^\w\s\+=\/]/gi, '').length);
-            console.log('glovebox-decrypthtml:attempt to decrypt: ' + ciphertext_raw);
-            console.log('glovebox-decrypthtml:attempt to decrypt: ' + ciphertext_raw.length);
-
-            return window.crypto.subtle.decrypt({
-                name: "AES-GCM",
-                iv: new Uint8Array(12)
-            },
-                key, _base64ToArrayBuffer(ciphertext_raw.replace(/[^\w\s\+=\/]/gi, '')));
-        }).then(function (compressed_plaintext) {
-
-            console.log('the decryption operation completed OK');
-            console.log('decrypted data: ' + compressed_plaintext);
-            console.log("decrypted1: " + arrayBufferToString(compressed_plaintext));
-            var shorty_2 = new Shorty();
-            replacement_html = shorty_2.inflate(arrayBufferToString(compressed_plaintext));
-
-            console.log("replacement text: " + replacement_html);
-
-            // send the decrypted text back to the tab
-
-            console.log("###calling CiphertextToHTML.js");
-
-            // execute script in active tab
-            return browser.tabs.executeScript({
-                file: "CiphertextToHTML.js",
-                allFrames: true
-            });
-
-        }).then(function (result) {
-
-            return browser.tabs.query({
-                active: true,
-                currentWindow: true
-            });
-        }).then(function (tabs) {
-            // send message to the active tab
-            console.log("replace" + glovebox_token_ciphertext);
-            console.log("with" + replacement_html);
-
-            browser.tabs.sendMessage(tabs[0].id, {
-                ciphertext_replacement_html: replacement_html,
-                regex: glovebox_token_ciphertext
-            });
-
-        }).then(function (a) {
-            console.log("###calling RemoveTabOnMessageListenerGetGloveboxCiphertext.js");
-            browser.tabs.executeScript({
-                file: "RemoveTabOnMessageListenerGetGloveboxCiphertext.js",
-                allFrames: true
-            });
-        }).then(function (a) {
-            console.log("###calling RemoveTabOnMessageListenerCiphertextToHTML.js");
-            browser.tabs.executeScript({
-                file: "RemoveTabOnMessageListenerCiphertextToHTML.js",
-                allFrames: true
-            });
-        });
-
-    }).then(function (responsefromtab) {
-
-        console.log("background.js:decrypt: responsefromtab:" + responsefromtab);
-    });
-
-});
-}
-
-
-function glovebox_decrypttextonly(){
-
-console.log("glovebox-decrypttextonly");
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-// recreate datastore if needed - fix this later
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-// the selection likely contains only a part for the Glovebox text. Or
-// possibly more than the Glovebox text. Expand or narrow as required.
-
-// call out to the tab to get the complete text
-var glovebox_token_ciphertext = "";
-var replacement_text = "";
-
-console.log("### calling Get_GloveboxCiphertext.js");
-
-// execute script in active tab
-browser.tabs.executeScript({
-    file: "Get_GloveboxCiphertext.js",
-    allFrames: true
-}).then(
-    function (result) {
-        console.log("background.js:onExecuted: result: " + result);
-    console.log("background.js:onExecuted: result: " + JSON.stringify(result));
-    // query for the one active tab
-    browser.tabs.query({
-        active: true,
-        currentWindow: true
-    }).then(function (tabs) {
-        // send message to the active tab
-        browser.tabs.sendMessage(tabs[0].id, {
-            GetGloveboxCiphertext: "Glbx_marker"
-        }).then(function (res) {
-            console.log("###### GetGloveboxCiphertext response " + JSON.stringify(res));
-            // assume format :Glovebox:<obfuscated token text>: 
-         //   var tokentext = res.response.doc.replace(/^:Glovebox:(.*):$/g, '$1');
-          //  console.log("###### tokentext " + tokentext);
-            glovebox_token_ciphertext = convertPsuedoTextToBase64(res.response.doc);
-            console.log("###### glovebox_token_ciphertext " + glovebox_token_ciphertext);
-
-            // which key to use for decryption
-
-
-            // get info out of token
-            const decryptkey_uuid_regex = new RegExp(':Glovebox:([^:]*):', 'm');
-
-            // var decryptkey_uuid_regex = /:Glovebox:([^:]*):/g;
-            var decryptkey_uuid = "";
-            if ((match3 = decryptkey_uuid_regex.exec(glovebox_token_ciphertext)) != null) {
-                decryptkey_uuid = match3[1];
-                console.log("decryptkey id: " + decryptkey_uuid);
-            }
-
-            // get the decryption key
-
-            return loadFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', decryptkey_uuid);
-        }).then(function (response) {
-            console.log("got key object: " + response);
-            console.log("got key object: " + JSON.stringify(response));
-
-            // verify signature on decryption key
-            // pull jwk of public key used to validate the signature covering the key object
-            
-           // var sign_verification_jwk = response.
-            
-            // verify expiration timestamp on key
-            
-            
-            var usekey = response.key_jwk;
-            var keyUsages = [
-                'encrypt',
-                'decrypt'
-            ];
-            // import the key
-            return window.crypto.subtle.importKey('jwk', usekey, {
-                name: 'AES-GCM'
-            }, true, keyUsages);
-
-        }).catch(function (status) {
-
-            console.log("handle error when decryotion key is not found ");
-
-        }).then(function (key) {
-
-            console.log("key imported, now use it: " + key);
-
-            // which key to use for decryption
-            var ciphertext_raw_regex = /:([^:]*):$/g;
-            var ciphertext_raw = "";
-            if ((match3 = ciphertext_raw_regex.exec(glovebox_token_ciphertext)) != null) {
-
-                console.log("###### getHTML response count " + match3.length);
-
-                var ciphertextlength = match3[0].length;
-                // :Glovebox:47b83c2c-5d3b-3823-2fc2-d8256aeb7f73:JfBMxr2rcjZwSogJfVU/SGBEv5igNXyakVdaLoohqN7V6M2mVW8Y2Xqjw13+ch1rVX7K16STX/4yktRsJnHImkQ3LynnTPpW7YnAEpt5AnfrDgNZxSH03dipy0CZDs7m/eJU+Fwvixw=:
-                console.log("start: " + match3.index);
-                // console.log("end: " + ciphertext_raw);
-                console.log("length: " + match3[0].length);
-
-                var text_end_pos = match3.index + match3[0].length;
-                var text_start_pos = match3.index;
-
-                ciphertext_raw = match3[0].substring(1, match3[0].length - 1);
-                console.log("######  ciphertext_raw: " + ciphertext_raw);
-
-            }
-
-            console.log('attempt to decrypt: ' + ciphertext_raw.replace(/[^\w\s\+=\/]/gi, ''));
-            console.log('attempt to decrypt: ' + ciphertext_raw.replace(/[^\w\s\+=\/]/gi, '').length);
-            console.log('attempt to decrypt: ' + ciphertext_raw);
-            console.log('attempt to decrypt: ' + ciphertext_raw.length);
-
-            return window.crypto.subtle.decrypt({
-                name: "AES-GCM",
-                iv: new Uint8Array(12)
-            },
-                key,
-                _base64ToArrayBuffer(ciphertext_raw.replace(/[^\w\s\+=\/]/gi, '')));
-        }).then(function (compressed_plaintext) {
-
-            console.log('the decryption operation completed OK');
-            console.log('decrypted data: ' + compressed_plaintext);
-            console.log("decrypted1: " + arrayBufferToString(compressed_plaintext));
-            var shorty_2 = new Shorty();
-            replacement_text = shorty_2.inflate(arrayBufferToString(compressed_plaintext));
-
-            console.log("replacement text: " + replacement_text);
-
-            // send the decrypted text back to the tab
-
-            console.log("###calling CiphertextToGloveboxMarkup.js");
-
-            // execute script in active tab
-            return browser.tabs.executeScript({
-                file: "CiphertextToGloveboxMarkup.js",
-                allFrames: true
-            });
-
-        }).then(function (result) {
-
-            return browser.tabs.query({
-                active: true,
-                currentWindow: true
-            });
-        }).then(function (tabs) {
-            // send message to the active tab
-            console.log("replace: " + glovebox_token_ciphertext);
-            console.log("with:    " + replacement_text);
-
-            browser.tabs.sendMessage(tabs[0].id, {
-                ciphertext_replacement_text: replacement_text,
-                regex: glovebox_token_ciphertext
-            });
-
-        }).then(function (a) {
-            console.log("###calling RemoveTabOnMessageListenerGetGloveboxCiphertext.js");
-            browser.tabs.executeScript({
-                file: "RemoveTabOnMessageListenerGetGloveboxCiphertext.js",
-                allFrames: true
-            });
-        }).then(function (a) {
-            console.log("###calling RemoveTabOnMessageListenerCiphertextToText.js");
-            browser.tabs.executeScript({
-                file: "RemoveTabOnMessageListenerCiphertextToText.js",
-                allFrames: true
-            });
-        });
-
-    }).then(function (responsefromtab) {
-
-        console.log("background.js:decrypt: responsefromtab:" + responsefromtab);
-    });
-
-});
-}
-
-
-function glovebox_acceptdecryptiontoken_open(){
-console.log("background.js: glovebox-acceptdecryptiontoken_open");
-// accepts a decryption token of type "open", into the database
-// suitable for use in a chat window
-
-
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-var request = indexedDB.open("trustedDecryptionKeys", 1);
-request.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-    var objectStore2 = db.createObjectStore('decryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-var request2 = indexedDB.open('encryptionKeys', 1);
-request2.onupgradeneeded = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {};
-    // Create an objectStore in this database to keep trusted decryption
-    // keys
-    console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-    var objectStore2 = db.createObjectStore('encryptionKeys', {
-            keyPath: 'keyId'
-        });
-
-    objectStore2.createIndex('keyId', 'keyId', {
-        unique: true
-    });
-};
-request2.onerror = function (event) {
-    console.log("background.js: dp open request error 201");
-};
-request2.onsuccess = function (event) {
-    db = event.target.result;
-    db.onerror = function (event) {
-        console.log("background.js: db open request error 2");
-    };
-    db.onsuccess = function (event) {
-        console.log("background.js: db open request success 2");
-    };
-};
-
-// execute script in active tab
-// colllect the token
-console.log("###calling AcceptToken_open.js");
-
-browser.tabs.executeScript({
-    file: "AcceptToken_open.js",
-    allFrames: true
-}).then(function (result) {
-    console.log("background.js:onExecuted4: We made it ....");
-    // console.log("background.js:onExecuted4: result: " + result);
-    // console.log("backgroupd.js:onExecuted4:selected_text: " +
-    // selected_text);
-    // console.log("backgroupd.js:onExecuted4:replacement_text: " +
-    // replacement_text);
-    // query for the one active tab
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    // send message to the active tab
-    return browser.tabs.sendMessage(tabs[0].id, {
-        replacement: "Glovebox token read."
-    });
-}).then(function (res) {
-    console.log("###### getHTML response " + JSON.stringify(res));
-    glovebox_token_ciphertext = res.response.token;
-
-    // get info out of token
-    var decryptkey_uuid_regex = /:GloveboxToken:[^:]*:([^:]*):/g;
-    var decryptkey_uuid = "";
-    var decryptkey_username_regex = /:GloveboxToken:([^:]*):/g;
-    var decryptkey_username = "";
-    var decryptkey_key_regex = /:GloveboxToken:[^:]*:[^:]*:([^:]*):/g;
-    var decryptkey_key = "";
-    if ((match3 = decryptkey_uuid_regex.exec(glovebox_token_ciphertext)) != null) {
-        decryptkey_uuid = match3[1];
-        console.log("###### getHTML decryptkey id: " + decryptkey_uuid);
-    }
-    if ((match3 = decryptkey_username_regex.exec(glovebox_token_ciphertext)) != null) {
-        decryptkey_username = match3[1];
-        console.log("###### getHTML decryptkey_username: " + decryptkey_username);
-    }
-    if ((match3 = decryptkey_key_regex.exec(glovebox_token_ciphertext)) != null) {
-        decryptkey_key = match3[1];
-        console.log("###### getHTML decryptkey_key: " + decryptkey_key);
-    }
-
-    newItem = {
-        'keyId': decryptkey_uuid,
-        "uuid": decryptkey_uuid,
-        'jwk': {
-            "alg": "A128GCM",
-            "ext": true,
-            "k": decryptkey_key,
-            "key_ops": ['decrypt'],
-            "kty": "oct"
-        },
-        "format": 'jwk',
-        "username": decryptkey_username,
-        "ext": true
-    };
-
-    // insert key into the database of trusted decryption keys
-    saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {});
-
-});
-
-}
-
-function consume_GloveboxAcceptedSecureKeyOfferToken(){
-console.log("background.js: consume-GloveboxAcceptedSecureKeyOfferToken");
-
-var storedRefObject;
-var secretObject;
-var token_obj;
-var recipient_enc_privateKeyJwk;
-var recipient_enc_publicKeyJwk;
-var recipient_enc_publicKey;
-
-var sender_sign_privkey_jwk;
-var sender_sign_pubkey_jwk;
-var sender_sign_privkey_obj;
-var sender_sign_pubkey_obj;
-
-var token_message;
-var token_text;
-var secret;
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-// execute script in active tab
-// colllect the token
-console.log("###calling Get_AcceptedGloveboxSecureKeyOfferToken.js");
-
-browser.tabs.executeScript({
-    file: "Get_AcceptedGloveboxSecureKeyOfferToken.js",
-    allFrames: true
-}).then(function (result) {
-    console.log("background.js:onExecuted4: We made it ....");
-    // console.log("background.js:onExecuted4: result: " + result);
-    // console.log("backgroupd.js:onExecuted4:selected_text: " +
-    // selected_text);
-    // console.log("backgroupd.js:onExecuted4:replacement_text: " +
-    // replacement_text);
-    // query for the one active tab
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    // send message to the active tab
-    return browser.tabs.sendMessage(tabs[0].id, {
-        AcceptedGloveboxSecureKeyOfferToken_replacement: "Glovebox token read.",
-        remove: "true"
-    });
-}).then(function (res) {
-    // read in the token text
-    console.log("###### getHTML response " + JSON.stringify(res));
-    glovebox_token_ciphertext = res.response.token;
-    console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1'));
-    // start decoding and decryting the token
-    console.log("token ciphertext: " + _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1')));
-
-    var shorty_51 = new Shorty();
-
-    var t = shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1'))));
-    token_plaintext = t.replace(/}:[^}]*$/, '}');
-    console.log("GloveboxAcceptedSecureKeyOfferToken plaintext: " + token_plaintext);
-
-    token_obj = JSON.parse(token_plaintext);
-
-    offerRefId = token_obj.refId;
-    requestedKeyId = token_obj.offeredKeyId;
-
-    console.log("token publicKey value: " + token_obj.recipient_enc_pubkey);
-
-    // assemble a public key JWK with includes the key ("n") from the
-    // received token
-
-    recipient_enc_publicKeyJwk = {
-        "alg": 'RSA-OAEP-256',
-        "e": "AQAB",
-        "ext": true,
-        "key_ops": [
-            'encrypt'
-        ],
-        "kty": "RSA",
-        "n": token_obj.recipient_enc_pubkey.trim()
-    }
-
-    console.log("token publicKeyJwk: " + token_obj.recipient_enc_pubkey);
-
-    var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
-
-    console.log("token signatureStr: " + signatureStr);
-    var message;
-    message = '{"refId":"' + token_obj.refId + '","offeredKeyId":"' + token_obj.offeredKeyId + '","enc_pubkey":"' + recipient_enc_publicKeyJwk.n + '"}';
-
-    var st = JSON.parse('{"s":"' + signatureStr + '"}');
-    console.log("##### verified message:" + token_plaintext);
-
-    console.log("import pubkey value:" + token_obj.recipient_enc_pubkey);
-    console.log("encrypt with recipient own pubkey JWK:" + JSON.stringify(recipient_enc_publicKeyJwk));
-
-    return window.crypto.subtle.importKey(
-        'jwk', recipient_enc_publicKeyJwk, {
-        name: "RSA-OAEP",
-        hash: {
-            name: "SHA-256"
-        },
-    },
-        true,
-        ['encrypt']);
-
-}).then(function (g) {
-    // console.log(g);
-    recipient_enc_publicKey = g;
-    // console.log("use this: " + JSON.stringify(token_obj));
-
-    return loadFromIndexedDB('encryptionKeysSecureOffers', 'createdKeyOffers', token_obj.refId);
-
-    // check the refid in token_obj
-
-}).then(function (refObj) {
-    storedRefObject = refObj;
-
-    console.log("refObj: " + JSON.stringify(storedRefObject));
-    // check if object was returned and if it is a match on the token.
-
-    console.log("refId from token: " + JSON.stringify(token_obj.refId));
-    console.log("refId from database: " + JSON.stringify(refObj.refId));
-
-    // if match, proceed with retrieveing key from database
-
-
-    // return loadFromIndexedDB('encryptionKeys', 'encryptionKeys',
-    // requestedKeyId);
-    if (token_obj.refId == refObj.refId) {
-        // proceed
-        console.log("secretObject: " + JSON.stringify(secretObject));
-
-    } else {
-        // terminate here with a jump forward to the next "catch"
-        // statement
-        throw "false";
-    }
-
-    console.log("encrypt this: " + token_obj.requestKeyId);
-
-    console.log("12");
-    return loadFromIndexedDB('encryptionKeys', 'encryptionKeys', storedRefObject.offeredKeyId);
-
-}).then(function (a) {
-
-    console.log("secretkey value to be encrypted: " + a.jwk.k);
-
-    console.log("using: ");
-    console.log(recipient_enc_publicKey);
-    let enc = new TextEncoder();
-
-    let encoded = enc.encode(a.jwk.k);
-
-    return window.crypto.subtle.encrypt({
-        name: 'RSA-OAEP',
-    },
-        recipient_enc_publicKey,
-        encoded);
-
-}).then(function (b) {
-    console.log("encrypted: " + b);
-    console.log("encrypted: " + ab2str(b));
-    console.log("encrypted: " + _arrayBufferToBase64(b));
-    secret = _arrayBufferToBase64(b);
-
-    // get the same signing key from the local database that was used in
-    // the original offer.
-
-    return loadFromIndexedDB('encryptionKeysSecureOffers', 'createdKeyOffers', token_obj.refId);
-
-}).then(function (b) {
-
-    console.log("offer object: " + JSON.stringify(b));
-
-    var sender_sign_privkey_jwk;
-    var sender_sign_pubkey_jwk;
-
-    sender_sign_pubkey_jwk = b.sign_pubkey;
-    sender_sign_privkey_jwk = b.sign_privkey;
-    // assemble the message which will constitute the token
-
-    token_message = '{"refId":"' + token_obj.refId + '","keyId":"' + token_obj.requestKeyId + '","enc_key":"' + secret + '"}'
-
-        console.log("token_message: " + token_message);
-
-    return sign(sender_sign_privkey_jwk, token_message);
-
-}).then(function (sigreq) {
-
-    // create GloveboxSecureKeyTokenFromAcceptedOfferToken token
-
-    console.log("calling Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken");
-
-    requestSignature = sigreq;
-    console.log("##### signed request message signature:" + sigreq);
-
-    return browser.tabs.executeScript({
-        file: "Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken.js"
-    });
-}).then(function (result) {
-
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-
-    var shorty_7 = new Shorty();
-
-    console.log("backgroupd.js: token_text: " + token_message + ":" + requestSignature);
-
-    var token_text = ':GloveboxSecureKeyTokenFromAcceptedOfferToken:' + _arrayBufferToBase64(str2ab(shorty_7.deflate(token_message + ":" + requestSignature))) + ':';
-
-    console.log("backgroupd.js: token_text: " + token_text);
-
-    browser.tabs.sendMessage(tabs[0].id, {
-
-        Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken_text: token_text
-    });
-
-}).catch(function (error) {
-    console.log("error: " + error);
-
-    // "String contains an invalid character"
-    // "not found"
-
-});
-}
-
-function consume_GloveboxSecureKeyTokenFromAcceptedOfferToken(){
-
-var t;
-var offerRefId;
-var requestedKeyId;
-var offeredKeyId;
-var counterpartyKeyNValue;
-var token_obj;
-var offerPersistentReferenceObj;
-var sender_sign_pubkey_jwk;
-var sender_sign_pubkey_obj;
-
-var sender_secretkey_n;
-
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-// execute script in active tab
-// colllect the token
-console.log("###calling Get_GloveboxSecureKeyTokenFromAcceptedOfferToken.js");
-
-browser.tabs.executeScript({
-    file: "Get_GloveboxSecureKeyTokenFromAcceptedOfferToken.js",
-    allFrames: true
-}).then(function (result) {
-    console.log("background.js:onExecuted4: We made it ....");
-
-    // query for the one active tab
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    // send message to the active tab
-    return browser.tabs.sendMessage(tabs[0].id, {
-        Get_GloveboxSecureKeyTokenFromAcceptedOfferToken_replacement: "Glovebox token read.",
-        remove: "true"
-    });
-}).then(function (res) {
-    console.log("###### getHTML response " + JSON.stringify(res));
-    glovebox_token_ciphertext = res.response.token;
-    console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxSecureKeyTokenFromAcceptedOfferToken:(.*):/, '$1'));
-    // start decoding and decryting the token
-    // console.log("token ciphertext: " +
-    // _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureRequestFromOfferToken:(.*):/,
-    // '$1')));
-
-    // console.log("token decompressedtext: " +
-    // ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
-    // /:GloveboxSecureRequestFromOfferToken:(.*):/, '$1' ))));
-    var shorty_81 = new Shorty();
-
-    // console.log("token inflated ciphertext: " +
-    // shorty_81.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
-    // /:GloveboxSecureRequestFromOfferToken:(.*):/, '$1' )))));
-    // console.log("token plaintext: " +
-    // shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
-    // /:GloveboxSecureOfferToken:(.*):/, '$1' )))));
-
-    t = shorty_81.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyTokenFromAcceptedOfferToken:(.*):/, '$1'))));
-    token_message = t.replace(/}:[^}]*$/, '}');
-    console.log("GloveboxSecureKeyTokenFromAcceptedOfferToken plaintext: " + token_message);
-
-    // at this point we have the keys in the token in encrypted form
-
-
-    token_obj = JSON.parse(token_message);
-
-    offerRefId = token_obj.refId;
-    // requestedKeyId = token_obj.requestKeyId;
-
-    // lookin the databse for a record of this key having being
-    // accepted,
-    // and use the public key of the server stored from the original key
-    // offer to verify the signature
-
-    return loadFromIndexedDB('acceptedKeyOffers', 'acceptedKeyOffers', token_obj.refId);
-
-}).then(function (refobj) {
-    offerPersistentReferenceObj = refobj;
-    console.log("ref obj: " + JSON.stringify(offerPersistentReferenceObj));
-
-    if (token_obj.refId == offerPersistentReferenceObj.refId) {
-        // the reference id in the token was found in the database of
-        // accepted key offers
-        console.log("1");
-        counterpartyKeyNValue = offerPersistentReferenceObj.sender_sign_publicKey;
-        offeredKeyId = offerPersistentReferenceObj.offeredKeyId;
-
-    } else {
-        console.log("2");
-        // if nothing found, throw error and exit
-
-        throw "no ref match found";
-    }
-
-    console.log("token obj: " + JSON.stringify(token_obj));
-
-    counterpartyPublicKeyJwk = {
-        "alg": "RS1",
-        "e": "AQAB",
-        "ext": true,
-        "key_ops": ['verify', 'sign'],
-        "kty": "RSA",
-        "n": counterpartyKeyNValue
-    };
-
-    // proceed to verify signature
-    console.log("token obj: " + JSON.stringify(token_obj));
-    console.log("t: " + t);
-    var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
-
-    console.log("token signatureStr: " + signatureStr);
-
-    console.log("token sign verification key: " + JSON.stringify(counterpartyPublicKeyJwk));
-
-    var st = JSON.parse('{"s":"' + signatureStr + '"}');
-    console.log("##### verify message:" + token_message);
-    console.log("##### verify signature:" + signatureStr);
-
-    console.log("##### verify signature:" + st.s);
-    console.log("##### counterparty public key jwk:" + counterpartyPublicKeyJwk);
-    console.log("##### counterparty public key:" + JSON.stringify(counterpartyPublicKeyJwk));
-    return verify(counterpartyPublicKeyJwk, signatureStr, token_message);
-
-}).catch(function (err) {
-    console.error(err);
-    return;
-}).then(function (c) {
-    console.log("verified: " + c);
-    if (c) {
-        console.log("verified: OK to proceed");
-        // look to database of accepted key offers for the private key
-        // to be used to decrypt the secret key
-        //
-
-        console.log(JSON.stringify(offerPersistentReferenceObj));
-        console.log(JSON.stringify(offerPersistentReferenceObj.enc_privkey));
-
-    } else {
-        console.log("verified: failed, terminate here.");
-        throw "signature_failed"
-    }
-
-    // import a privatekey for use in decryption
-    return window.crypto.subtle.importKey(
-        'jwk', offerPersistentReferenceObj.enc_privkey, {
-        name: 'RSA-OAEP',
-        hash: {
-            name: 'SHA-256'
-        },
-    },
-        true,
-        ['decrypt']);
-
-}).then(function (ownPrivateKeyObj) {
-    console.log(ownPrivateKeyObj);
-
-    console.log("decrypting: " + _base64ToArrayBuffer(token_obj.enc_key));
-    console.log("using: " + ownPrivateKeyObj);
-    // console.log("using: " + JSON.stringify(ownPrivateKeyObj));
-
-    // decrypt with private key
-    let enc = new TextEncoder();
-    // let encoded = enc.encode(token_obj.enc_key);
-    let encoded = _base64ToArrayBuffer(token_obj.enc_key);
-
-    return window.crypto.subtle.decrypt({
-        name: "RSA-OAEP",
-    },
-        ownPrivateKeyObj,
-        encoded);
-
-}).then(function (plaintext) {
-    // ready to proceed wit hdecryption of the decryption key sent over
-    console.log("token key plaintext: " + plaintext);
-
-    let utf8decoder = new TextDecoder(); // default 'utf-8' or 'utf8'
-    console.log(utf8decoder.decode(plaintext));
-
-    sender_secretkey_n = utf8decoder.decode(plaintext);
-    // compose decryption key object and insert into database
-
-    // uuid should be unique to an individual key and follow the key around.
-
-    var keyid = "22" + offeredKeyId;
-    var newitem;
-    newItem = {
-        'keyId': keyid,
-        "uuid": offeredKeyId,
-        "key": sender_secretkey_n,
-        'jwk': {
-            "alg": "A128GCM",
-            "ext": true,
-            "k": sender_secretkey_n,
-            "key_ops": ['decrypt'],
-            "kty": "oct"
-        },
-        "format": 'jwk',
-        "username": "not_implemented",
-        "ext": true
-    };
-
-    console.log("adding descryption key object: " + newitem);
-
-    saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem);
-
-}).catch(function (err) {
-    console.error(err);
-
-});
-}
-
-
-// By key Sender
-// paste in the text containing a secure key offer
-// the recipient is free to accept or reject the offer.
-// The offer is rejected by simply ignoring it.
-// to accept the offer, the recipient (or counterparty) responds with signed
-// offer accepted token.
-// The offer accepted token contains the offer refference id, the key ID and
-// the public key of the recipient.
-
-
-function paste_GloveboxSecureKeyOfferToken(){
-
-// place a glovebox token that contains an offer to send a specified
-// decryption token.
-// It contains the public key of the sender and the encryption key
-// reference; both are signed by the senders private key.
-
-// structure of the signed text is
-// uuId of key being offered:OfferReferenceId:Publickey of signer
-
-
-// The recipient of the token accepts the offer by responding with an
-// Accept Offer token.
-// The Accept Offer token is signed with the private key of the
-// recipient.
-
-
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
-
-// do_db_setup();
-
-
-// create key pair
-
-var defaultEncryptionKeyId;
-var privateKeyJwk;
-
-var offeredKeyId;
-
-var signatureStr;
-var publicKeyJwk;
-var signingKeyPair;
-var textToSign = "encryptionkeyreference:";
-
-var sign_privkey;
-var sign_pubkey;
-
-var token_text;
-// generates random id;
-let guid = () => {
-    let s4 = () => {
-        return Math.floor((1 + Math.random()) * 0x10000)
-        .toString(16)
-        .substring(1);
-    }
-    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
-}
-var id = guid();
-var offerRefId = id;
-
-// generate public-private key pair suitable for signing.
-
-window.crypto.subtle.generateKey({
-    name: "RSASSA-PKCS1-v1_5",
-    modulusLength: 1024,
-    publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-    hash: {
-        name: "SHA-1"
-    },
-},
-    true,
-    ['sign', 'verify']).then(function (key) {
-    // secretKey = key;
-    testkeypairobj = key;
-    console.log('navigate-collection.js:generate_encryption_key');
-    // make key into exportable form
-    return window.crypto.subtle.exportKey('jwk', testkeypairobj.publicKey);
-}).then(function (expkey) {
-    console.log("2");
-    sign_pubkey = expkey;
-    console.log('navigate-collection.js: expkey: ' + JSON.stringify(expkey));
-
-    console.log("22");
-    return window.crypto.subtle.exportKey('jwk', testkeypairobj.privateKey);
-}).then(function (c) {
-    console.log("3");
-    sign_privkey = c;
-
-    return loadFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey');
-}).then(function (defaultenckey) {
-    offeredKeyId = defaultenckey.uuid;
-
-    // token_text = ':GloveboxToken:' + '{"refId":' + offerRefId +
-    // ',"offeredKeyId":' + offeredKeyId + '}:' + b;
-
-    console.log("##### signing pubkey:" + JSON.stringify(sign_pubkey));
-    console.log("##### signing privkey:" + JSON.stringify(sign_privkey));
-
-    textToSign = '{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}';
-
-    console.log("##### signed message:" + textToSign);
-
-    return sign(sign_privkey, textToSign);
-
-}).then(function (b) {
-
-    console.log("signed: " + b.typeof);
-    console.log("signed: " + JSON.stringify(b));
-
-    signatureStr = b;
-
-    var createtime = new Date();
-
-    // now write to db all relevant inof about this offer
-    newItem = {
-        "refId": offerRefId,
-        "offeredKeyId": offeredKeyId,
-        "createTime": createtime,
-        'jwk': {
-            "alg": "A128GCM",
-            "ext": true,
-            "key_ops": ['decrypt'],
-            "kty": "oct"
-        },
-        "textToSign": "textToSign",
-        "format": "text",
-        "sign_privkey": sign_privkey,
-        "sign_pubkey": sign_pubkey,
-        "recipientusername": "test"
-    };
-
-    token_text = textToSign + ":" + signatureStr;
-
-    console.log("verified: " + token_text);
-    console.log("verified: " + _arrayBufferToBase64(stringToArrayBuffer(token_text)));
-
-    console.log("verified: " + ab2str(str2ab(token_text)));
-
-    var shorty_2 = new Shorty();
-    console.log("verified: " + _arrayBufferToBase64(str2ab(shorty_2.deflate(token_text))));
-
-    var shorty_3 = new Shorty();
-    var shorty_4 = new Shorty();
-
-    console.log("verified: " + shorty_3.inflate(ab2str(_base64ToArrayBuffer(_arrayBufferToBase64(str2ab(shorty_4.deflate('{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}' + ":" + signatureStr)))))));
-    var shorty_6 = new Shorty();
-
-    token_text = ':GloveboxSecureKeyOfferToken:' + _arrayBufferToBase64(str2ab(shorty_6.deflate('{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}' + ":" + signatureStr))) + ':';
-    console.log("token plaintext: " + token_text);
-    var shorty_5 = new Shorty();
-    console.log("verified: 22");
-    console.log("GloveboxSecureKeyOfferToken plaintext: " + shorty_5.inflate(ab2str(_base64ToArrayBuffer(token_text.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1')))));
-
-    console.log("writing offer to db> ");
-
-    // insert key into the database of trusted decryption keys
-    return saveToIndexedDB('encryptionKeysSecureOffers', 'createdKeyOffers', 'refId', newItem);
-}).then(function (response) {
-    console.log("###### textToSign:" + textToSign);
-    console.log("###### signature:" + signatureStr);
-    console.log("###### key:" + sign_pubkey);
-    console.log("###### key:" + JSON.stringify(sign_pubkey));
-
-    return verify(sign_pubkey, signatureStr, textToSign);
-}).then(function (c) {
-    console.log("verified: " + c);
-    console.log("###calling Paste_GloveboxSecureKeyOfferToken.js");
-    return browser.tabs.executeScript({
-        file: "Paste_GloveboxSecureKeyOfferToken.js"
-    });
-}).then(function (result) {
-    console.log("backgroupd.js: token_text: " + token_text);
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    browser.tabs.sendMessage(tabs[0].id, {
-        Paste_GloveboxSecureKeyOfferToken_text: token_text
-    });
-
-}).then(function (r) {
-    // call to remove page listener
-    console.log("###calling RemoveTabOnMessageListenerPasteTokenText.js");
-    browser.tabs.executeScript({
-        file: "RemoveTabOnMessageListenerPasteTokenText.js",
-        allFrames: true
-    });
-
-}).catch(function (error) {
-    console.log("error: " + error);
-
-    // "String contains an invalid character"
-    // "not found"
-
-});
-}
-
-
-function glovebox_decrypthtml() {
-	
-    console.log("glovebox-decrypthtml");
     indexedDB = window.indexedDB || window.webkitIndexedDB ||
         window.mozIndexedDB || window.msIndexedDB;
 
-    // recreate datastore if needed - fix this later
-    var request = indexedDB.open("trustedDecryptionKeys", 1);
+    var request = indexedDB.open("decryptionKeysDB", 1);
     request.onupgradeneeded = function (event) {
         db = event.target.result;
         db.onerror = function (event) {};
         // Create an objectStore in this database to keep trusted decryption
         // keys
-        console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys");
-        var objectStore2 = db.createObjectStore('decryptionKeys', {
+        console.log("background.js: create objectstore decryptionKeysStore in decryptionKeysDB");
+        var objectStore2 = db.createObjectStore('decryptionKeysStore', {
                 keyPath: 'keyId'
             });
 
@@ -2113,14 +591,915 @@ function glovebox_decrypthtml() {
         };
     };
 
-    var request2 = indexedDB.open('encryptionKeys', 1);
+    var request2 = indexedDB.open('encryptionKeysDB', 1);
     request2.onupgradeneeded = function (event) {
         db = event.target.result;
         db.onerror = function (event) {};
         // Create an objectStore in this database to keep trusted decryption
         // keys
-        console.log("background.js: create objectstore encryptionKeys in encryptionKeys");
-        var objectStore2 = db.createObjectStore('encryptionKeys', {
+        console.log("background.js: create objectstore encryptionKeysStore in encryptionKeysDB");
+        var objectStore2 = db.createObjectStore('encryptionKeysStore', {
+                keyPath: 'keyId'
+            });
+
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
+        });
+    };
+    request2.onerror = function (event) {
+        console.log("background.js: dp open request error 201");
+    };
+    request2.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("background.js: db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("background.js: db open request success 2");
+        };
+    };
+
+    //
+
+
+    // generate a Globebox descryption token form the default encryption key
+    var glovebox_key_token_openform = "";
+    // getDefaultSecretKey
+    getDefaultSecretKey().then(function (obj) {
+        // use the key
+
+        console.log("default key: " + JSON.stringify(obj));
+        // Glovebox keytoken open
+        // syntax:":CloveboxToken:<username>:<keyuuid>:<base64(decryptionkey)>:"
+        // Glovebox keytoken open
+        // sample:":CloveboxToken:username01@domain.org:asasd-bb-erw-w45gvs-5asd:fsdawwefwrwtgRgevWefsfsetg3563rgvegreRErgvE==:"
+
+
+        glovebox_key_token_openform = ':GloveboxOpenKeyToken:username01@domain.org:' + obj.uuid + ':' + obj.key + ':';
+
+        console.log("created token " + glovebox_key_token_openform);
+        console.log("###calling PasteGloveboxOpenKeyToken.js");
+
+        return browser.tabs.executeScript({
+            file: "PasteGloveboxOpenKeyToken.js"
+        });
+    }).then(function (result) {
+        console.log("backgroupd.js:onExecuted4:glovebox_key_token_openform: " + glovebox_key_token_openform);
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        browser.tabs.sendMessage(tabs[0].id, {
+            PasteGloveboxOpenKeyToken_text: glovebox_key_token_openform,
+            PasteGloveboxOpenKeyToken: "Glbx_marker3"
+        });
+    }).then(function (r) {
+        // call to remove page listener
+        console.log("###calling RemoveTabOnMessageListenerPasteTokenText.js");
+
+        browser.tabs.executeScript({
+            file: "RemoveTabOnMessageListenerPasteTokenText.js",
+            allFrames: true
+        });
+
+    });
+}
+
+//
+
+function glovebox_acceptdecryptiontoken_open() {
+    console.log("background.js: glovebox-acceptdecryptiontoken_open");
+    // accepts a decryption token of type "open", into the database
+    // suitable for use in a chat window
+
+
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
+
+    var request = indexedDB.open("decryptionKeysDB", 1);
+    request.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("background.js: create objectstore decryptionKeysStore in decryptionKeysDB");
+        var objectStore2 = db.createObjectStore('decryptionKeysStore', {
+                keyPath: 'keyId'
+            });
+
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
+        });
+    };
+    request.onerror = function (event) {
+        console.log("background.js: dp open request error 201");
+    };
+    request.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("background.js: db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("background.js: db open request success 2");
+        };
+    };
+
+    var request2 = indexedDB.open('encryptionKeysDB', 1);
+    request2.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("background.js: create objectstore encryptionKeys in gloveboxKeys");
+        var objectStore2 = db.createObjectStore('encryptionKeysStore', {
+                keyPath: 'keyId'
+            });
+
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
+        });
+    };
+    request2.onerror = function (event) {
+        console.log("background.js: dp open request error 201");
+    };
+    request2.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("background.js: db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("background.js: db open request success 2");
+        };
+    };
+
+    // execute script in active tab
+    // colllect the token
+    console.log("###calling AcceptToken_open.js");
+
+    browser.tabs.executeScript({
+        file: "AcceptToken_open.js",
+        allFrames: true
+    }).then(function (result) {
+        console.log("background.js:onExecuted4: We made it ....");
+        // console.log("background.js:onExecuted4: result: " + result);
+        // console.log("backgroupd.js:onExecuted4:selected_text: " +
+        // selected_text);
+        // console.log("backgroupd.js:onExecuted4:replacement_text: " +
+        // replacement_text);
+        // query for the one active tab
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        // send message to the active tab
+        return browser.tabs.sendMessage(tabs[0].id, {
+            replacement: "Glovebox token read.",
+            CiphertextToPlaintext: "Glbx_marker3"
+        });
+    }).then(function (res) {
+        console.log("###### getHTML response " + JSON.stringify(res));
+        glovebox_token_ciphertext = res.response.token;
+
+        // get info out of token
+        var decryptkey_uuid_regex = /:GloveboxToken:[^:]*:([^:]*):/g;
+        var decryptkey_uuid = "";
+        var decryptkey_username_regex = /:GloveboxToken:([^:]*):/g;
+        var decryptkey_username = "";
+        var decryptkey_key_regex = /:GloveboxToken:[^:]*:[^:]*:([^:]*):/g;
+        var decryptkey_key = "";
+        if ((match3 = decryptkey_uuid_regex.exec(glovebox_token_ciphertext)) != null) {
+            decryptkey_uuid = match3[1];
+            console.log("###### getHTML decryptkey id: " + decryptkey_uuid);
+        }
+        if ((match3 = decryptkey_username_regex.exec(glovebox_token_ciphertext)) != null) {
+            decryptkey_username = match3[1];
+            console.log("###### getHTML decryptkey_username: " + decryptkey_username);
+        }
+        if ((match3 = decryptkey_key_regex.exec(glovebox_token_ciphertext)) != null) {
+            decryptkey_key = match3[1];
+            console.log("###### getHTML decryptkey_key: " + decryptkey_key);
+        }
+
+        newItem = {
+            'keyId': decryptkey_uuid,
+            "uuid": decryptkey_uuid,
+            'jwk': {
+                "alg": "A128GCM",
+                "ext": true,
+                "k": decryptkey_key,
+                "key_ops": ['decrypt'],
+                "kty": "oct"
+            },
+            "format": 'jwk',
+            "username": decryptkey_username,
+            "ext": true
+        };
+
+        // insert key into the database of trusted decryption keys
+        saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem).then(function (response) {});
+
+    });
+
+}
+
+function consume_GloveboxAcceptedSecureKeyOfferToken() {
+    console.log("background.js: consume-GloveboxAcceptedSecureKeyOfferToken");
+
+    var storedRefObject;
+    var secretObject;
+    var token_obj;
+    var recipient_enc_privateKeyJwk;
+    var recipient_enc_publicKeyJwk;
+    var recipient_enc_publicKey;
+
+    var sender_sign_privkey_jwk;
+    var sender_sign_pubkey_jwk;
+    var sender_sign_privkey_obj;
+    var sender_sign_pubkey_obj;
+
+    var token_message;
+    var token_text;
+    var secret;
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
+
+    // execute script in active tab
+    // colllect the token
+    console.log("###calling Get_AcceptedGloveboxSecureKeyOfferToken.js");
+
+    browser.tabs.executeScript({
+        file: "Get_AcceptedGloveboxSecureKeyOfferToken.js",
+        allFrames: true
+    }).then(function (result) {
+        console.log("background.js:onExecuted4: We made it ....");
+        // console.log("background.js:onExecuted4: result: " + result);
+        // console.log("backgroupd.js:onExecuted4:selected_text: " +
+        // selected_text);
+        // console.log("backgroupd.js:onExecuted4:replacement_text: " +
+        // replacement_text);
+        // query for the one active tab
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        // send message to the active tab
+        return browser.tabs.sendMessage(tabs[0].id, {
+            AcceptedGloveboxSecureKeyOfferToken_replacement: "Glovebox token read.",
+            CiphertextToPlaintext: "Glbx_marker3",
+            remove: "true"
+        });
+    }).then(function (res) {
+        // read in the token text
+        console.log("###### getHTML response " + JSON.stringify(res));
+        glovebox_token_ciphertext = res.response.token;
+        console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1'));
+        // start decoding and decryting the token
+        console.log("token ciphertext: " + _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1')));
+
+        var shorty_51 = new Shorty();
+
+        var t = shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxAcceptedSecureKeyOfferToken:(.*):/, '$1'))));
+        token_plaintext = t.replace(/}:[^}]*$/, '}');
+        console.log("GloveboxAcceptedSecureKeyOfferToken plaintext: " + token_plaintext);
+
+        token_obj = JSON.parse(token_plaintext);
+
+        offerRefId = token_obj.refId;
+        requestedKeyId = token_obj.offeredKeyId;
+
+        console.log("token publicKey value: " + token_obj.recipient_enc_pubkey);
+
+        // assemble a public key JWK with includes the key ("n") from the
+        // received token
+
+        recipient_enc_publicKeyJwk = {
+            "alg": 'RSA-OAEP-256',
+            "e": "AQAB",
+            "ext": true,
+            "key_ops": [
+                'encrypt'
+            ],
+            "kty": "RSA",
+            "n": token_obj.recipient_enc_pubkey.trim()
+        }
+
+        console.log("token publicKeyJwk: " + token_obj.recipient_enc_pubkey);
+
+        var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
+
+        console.log("token signatureStr: " + signatureStr);
+        var message;
+        message = '{"refId":"' + token_obj.refId + '","offeredKeyId":"' + token_obj.offeredKeyId + '","enc_pubkey":"' + recipient_enc_publicKeyJwk.n + '"}';
+
+        var st = JSON.parse('{"s":"' + signatureStr + '"}');
+        console.log("##### verified message:" + token_plaintext);
+
+        console.log("import pubkey value:" + token_obj.recipient_enc_pubkey);
+        console.log("encrypt with recipient own pubkey JWK:" + JSON.stringify(recipient_enc_publicKeyJwk));
+
+        return window.crypto.subtle.importKey(
+            'jwk', recipient_enc_publicKeyJwk, {
+            name: "RSA-OAEP",
+            hash: {
+                name: "SHA-256"
+            },
+        },
+            true,
+            ['encrypt']);
+
+    }).then(function (g) {
+        // console.log(g);
+        recipient_enc_publicKey = g;
+        // console.log("use this: " + JSON.stringify(token_obj));
+
+        return loadFromIndexedDB('createdKeyOffersDB', 'createdKeyOffersStore', token_obj.refId);
+
+        // check the refid in token_obj
+
+    }).then(function (refObj) {
+        storedRefObject = refObj;
+
+        console.log("refObj: " + JSON.stringify(storedRefObject));
+        // check if object was returned and if it is a match on the token.
+
+        console.log("refId from token: " + JSON.stringify(token_obj.refId));
+        console.log("refId from database: " + JSON.stringify(refObj.refId));
+
+        // if match, proceed with retrieveing key from database
+
+
+        // return loadFromIndexedDB('encryptionKeys', 'encryptionKeys',
+        // requestedKeyId);
+        if (token_obj.refId == refObj.refId) {
+            // proceed
+            console.log("secretObject: " + JSON.stringify(secretObject));
+
+        } else {
+            // terminate here with a jump forward to the next "catch"
+            // statement
+            throw "false";
+        }
+
+        console.log("encrypt this: " + token_obj.requestKeyId);
+
+        console.log("12");
+        return loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', storedRefObject.offeredKeyId);
+
+    }).then(function (a) {
+
+        console.log("secretkey value to be encrypted: " + a.jwk.k);
+
+        console.log("using: ");
+        console.log(recipient_enc_publicKey);
+        let enc = new TextEncoder();
+
+        let encoded = enc.encode(a.jwk.k);
+
+        return window.crypto.subtle.encrypt({
+            name: 'RSA-OAEP',
+        },
+            recipient_enc_publicKey,
+            encoded);
+
+    }).then(function (b) {
+        console.log("encrypted: " + b);
+        console.log("encrypted: " + ab2str(b));
+        console.log("encrypted: " + _arrayBufferToBase64(b));
+        secret = _arrayBufferToBase64(b);
+
+        // get the same signing key from the local database that was used in
+        // the original offer.
+
+        return loadFromIndexedDB('createdKeyOffersDB', 'createdKeyOffersStore', token_obj.refId);
+
+    }).then(function (b) {
+
+        console.log("offer object: " + JSON.stringify(b));
+
+        var sender_sign_privkey_jwk;
+        var sender_sign_pubkey_jwk;
+
+        sender_sign_pubkey_jwk = b.sign_pubkey;
+        sender_sign_privkey_jwk = b.sign_privkey;
+        // assemble the message which will constitute the token
+
+        token_message = '{"refId":"' + token_obj.refId + '","keyId":"' + token_obj.requestKeyId + '","enc_key":"' + secret + '"}'
+
+            console.log("token_message: " + token_message);
+
+        return sign(sender_sign_privkey_jwk, token_message);
+
+    }).then(function (sigreq) {
+
+        // create GloveboxSecureKeyTokenFromAcceptedOfferToken token
+
+        console.log("calling Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken");
+
+        requestSignature = sigreq;
+        console.log("##### signed request message signature:" + sigreq);
+
+        return browser.tabs.executeScript({
+            file: "Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken.js"
+        });
+    }).then(function (result) {
+
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+
+        var shorty_7 = new Shorty();
+
+        console.log("backgroupd.js: token_text: " + token_message + ":" + requestSignature);
+
+        var token_text = ':GloveboxSecureKeyTokenFromAcceptedOfferToken:' + _arrayBufferToBase64(str2ab(shorty_7.deflate(token_message + ":" + requestSignature))) + ':';
+
+        console.log("backgroupd.js: token_text: " + token_text);
+
+        browser.tabs.sendMessage(tabs[0].id, {
+
+            Paste_GloveboxSecureKeyTokenFromAcceptedOfferToken_text: token_text, 
+            CiphertextToPlaintext: "Glbx_marker3"
+        });
+
+    }).catch(function (error) {
+        console.log("error: " + error);
+
+        // "String contains an invalid character"
+        // "not found"
+
+    });
+}
+
+function consume_GloveboxSecureKeyTokenFromAcceptedOfferToken() {
+
+    var t;
+    var offerRefId;
+    var requestedKeyId;
+    var offeredKeyId;
+    var counterpartyKeyNValue;
+    var token_obj;
+    var offerPersistentReferenceObj;
+    var sender_sign_pubkey_jwk;
+    var sender_sign_pubkey_obj;
+
+    var sender_secretkey_n;
+
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
+
+    // execute script in active tab
+    // colllect the token
+    console.log("###calling Get_GloveboxSecureKeyTokenFromAcceptedOfferToken.js");
+
+    browser.tabs.executeScript({
+        file: "Get_GloveboxSecureKeyTokenFromAcceptedOfferToken.js",
+        allFrames: true
+    }).then(function (result) {
+        console.log("background.js:onExecuted4: We made it ....");
+
+        // query for the one active tab
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        // send message to the active tab
+        return browser.tabs.sendMessage(tabs[0].id, {
+            Get_GloveboxSecureKeyTokenFromAcceptedOfferToken_replacement: "Glovebox token read.",
+            CiphertextToPlaintext: "Glbx_marker3",
+            remove: "true"
+        });
+    }).then(function (res) {
+        console.log("###### getHTML response " + JSON.stringify(res));
+        glovebox_token_ciphertext = res.response.token;
+        console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxSecureKeyTokenFromAcceptedOfferToken:(.*):/, '$1'));
+        // start decoding and decryting the token
+        // console.log("token ciphertext: " +
+        // _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureRequestFromOfferToken:(.*):/,
+        // '$1')));
+
+        // console.log("token decompressedtext: " +
+        // ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
+        // /:GloveboxSecureRequestFromOfferToken:(.*):/, '$1' ))));
+        var shorty_81 = new Shorty();
+
+        // console.log("token inflated ciphertext: " +
+        // shorty_81.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
+        // /:GloveboxSecureRequestFromOfferToken:(.*):/, '$1' )))));
+        // console.log("token plaintext: " +
+        // shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(
+        // /:GloveboxSecureOfferToken:(.*):/, '$1' )))));
+
+        t = shorty_81.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyTokenFromAcceptedOfferToken:(.*):/, '$1'))));
+        token_message = t.replace(/}:[^}]*$/, '}');
+        console.log("GloveboxSecureKeyTokenFromAcceptedOfferToken plaintext: " + token_message);
+
+        // at this point we have the keys in the token in encrypted form
+
+
+        token_obj = JSON.parse(token_message);
+
+        offerRefId = token_obj.refId;
+        // requestedKeyId = token_obj.requestKeyId;
+
+        // lookin the databse for a record of this key having being
+        // accepted,
+        // and use the public key of the server stored from the original key
+        // offer to verify the signature
+
+        return loadFromIndexedDB('acceptedKeyOffersDB', 'acceptedKeyOffersStore', token_obj.refId);
+
+    }).then(function (refobj) {
+        offerPersistentReferenceObj = refobj;
+        console.log("ref obj: " + JSON.stringify(offerPersistentReferenceObj));
+
+        if (token_obj.refId == offerPersistentReferenceObj.refId) {
+            // the reference id in the token was found in the database of
+            // accepted key offers
+            console.log("1");
+            counterpartyKeyNValue = offerPersistentReferenceObj.sender_sign_publicKey;
+            offeredKeyId = offerPersistentReferenceObj.offeredKeyId;
+
+        } else {
+            console.log("2");
+            // if nothing found, throw error and exit
+
+            throw "no ref match found";
+        }
+
+        console.log("token obj: " + JSON.stringify(token_obj));
+
+        counterpartyPublicKeyJwk = {
+            "alg": "RS1",
+            "e": "AQAB",
+            "ext": true,
+            "key_ops": ['verify', 'sign'],
+            "kty": "RSA",
+            "n": counterpartyKeyNValue
+        };
+
+        // proceed to verify signature
+        console.log("token obj: " + JSON.stringify(token_obj));
+        console.log("t: " + t);
+        var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
+
+        console.log("token signatureStr: " + signatureStr);
+
+        console.log("token sign verification key: " + JSON.stringify(counterpartyPublicKeyJwk));
+
+        var st = JSON.parse('{"s":"' + signatureStr + '"}');
+        console.log("##### verify message:" + token_message);
+        console.log("##### verify signature:" + signatureStr);
+
+        console.log("##### verify signature:" + st.s);
+        console.log("##### counterparty public key jwk:" + counterpartyPublicKeyJwk);
+        console.log("##### counterparty public key:" + JSON.stringify(counterpartyPublicKeyJwk));
+        return verify(counterpartyPublicKeyJwk, signatureStr, token_message);
+
+    }).catch(function (err) {
+        console.error(err);
+        return;
+    }).then(function (c) {
+        console.log("verified: " + c);
+        if (c) {
+            console.log("verified: OK to proceed");
+            // look to database of accepted key offers for the private key
+            // to be used to decrypt the secret key
+            //
+
+            console.log(JSON.stringify(offerPersistentReferenceObj));
+            console.log(JSON.stringify(offerPersistentReferenceObj.enc_privkey));
+
+        } else {
+            console.log("verified: failed, terminate here.");
+            throw "signature_failed"
+        }
+
+        // import a privatekey for use in decryption
+        return window.crypto.subtle.importKey(
+            'jwk', offerPersistentReferenceObj.enc_privkey, {
+            name: 'RSA-OAEP',
+            hash: {
+                name: 'SHA-256'
+            },
+        },
+            true,
+            ['decrypt']);
+
+    }).then(function (ownPrivateKeyObj) {
+        console.log(ownPrivateKeyObj);
+
+        console.log("decrypting: " + _base64ToArrayBuffer(token_obj.enc_key));
+        console.log("using: " + ownPrivateKeyObj);
+        // console.log("using: " + JSON.stringify(ownPrivateKeyObj));
+
+        // decrypt with private key
+        let enc = new TextEncoder();
+        // let encoded = enc.encode(token_obj.enc_key);
+        let encoded = _base64ToArrayBuffer(token_obj.enc_key);
+
+        return window.crypto.subtle.decrypt({
+            name: "RSA-OAEP",
+        },
+            ownPrivateKeyObj,
+            encoded);
+
+    }).then(function (plaintext) {
+        // ready to proceed wit hdecryption of the decryption key sent over
+        console.log("token key plaintext: " + plaintext);
+
+        let utf8decoder = new TextDecoder(); // default 'utf-8' or 'utf8'
+        console.log(utf8decoder.decode(plaintext));
+
+        sender_secretkey_n = utf8decoder.decode(plaintext);
+        // compose decryption key object and insert into database
+
+        // uuid should be unique to an individual key and follow the key around.
+
+        var keyid = "22" + offeredKeyId;
+        var newitem;
+        newItem = {
+            'keyId': keyid,
+            "uuid": offeredKeyId,
+            "key": sender_secretkey_n,
+            'jwk': {
+                "alg": "A128GCM",
+                "ext": true,
+                "k": sender_secretkey_n,
+                "key_ops": ['decrypt'],
+                "kty": "oct"
+            },
+            "format": 'jwk',
+            "username": "not_implemented",
+            "ext": true
+        };
+
+        console.log("adding descryption key object: " + newitem);
+
+        saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem);
+
+    }).catch(function (err) {
+        console.error(err);
+
+    });
+}
+
+// By key Sender
+// paste in the text containing a secure key offer
+// the recipient is free to accept or reject the offer.
+// The offer is rejected by simply ignoring it.
+// to accept the offer, the recipient (or counterparty) responds with signed
+// offer accepted token.
+// The offer accepted token contains the offer refference id, the key ID and
+// the public key of the recipient.
+
+
+function paste_GloveboxSecureKeyOfferToken() {
+
+    // place a glovebox token that contains an offer to send a specified
+    // decryption token.
+    // It contains the public key of the sender and the encryption key
+    // reference; both are signed by the senders private key.
+
+    // structure of the signed text is
+    // uuId of key being offered:OfferReferenceId:Publickey of signer
+
+
+    // The recipient of the token accepts the offer by responding with an
+    // Accept Offer token.
+    // The Accept Offer token is signed with the private key of the
+    // recipient.
+
+
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
+
+    // do_db_setup();
+
+
+    // create key pair
+
+    var defaultEncryptionKeyId;
+    var privateKeyJwk;
+
+    var offeredKeyId;
+
+    var signatureStr;
+    var publicKeyJwk;
+    var signingKeyPair;
+    var textToSign = "encryptionkeyreference:";
+
+    var sign_privkey;
+    var sign_pubkey;
+
+    var token_text;
+    // generates random id;
+    let guid = () => {
+        let s4 = () => {
+            return Math.floor((1 + Math.random()) * 0x10000)
+            .toString(16)
+            .substring(1);
+        }
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+    }
+    var id = guid();
+    var offerRefId = id;
+
+    // generate public-private key pair suitable for signing.
+
+    window.crypto.subtle.generateKey({
+        name: "RSASSA-PKCS1-v1_5",
+        modulusLength: 1024,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: {
+            name: "SHA-1"
+        },
+    },
+        true,
+        ['sign', 'verify']).then(function (key) {
+        // secretKey = key;
+        testkeypairobj = key;
+        console.log('navigate-collection.js:generate_encryption_key');
+        // make key into exportable form
+        return window.crypto.subtle.exportKey('jwk', testkeypairobj.publicKey);
+    }).then(function (expkey) {
+        console.log("2");
+        sign_pubkey = expkey;
+        console.log('navigate-collection.js: expkey: ' + JSON.stringify(expkey));
+
+        console.log("22");
+        return window.crypto.subtle.exportKey('jwk', testkeypairobj.privateKey);
+    }).then(function (c) {
+        console.log("3");
+        sign_privkey = c;
+
+        return loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey');
+    }).then(function (defaultenckey) {
+        offeredKeyId = defaultenckey.uuid;
+
+        // token_text = ':GloveboxToken:' + '{"refId":' + offerRefId +
+        // ',"offeredKeyId":' + offeredKeyId + '}:' + b;
+
+        console.log("##### signing pubkey:" + JSON.stringify(sign_pubkey));
+        console.log("##### signing privkey:" + JSON.stringify(sign_privkey));
+
+        textToSign = '{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}';
+
+        console.log("##### signed message:" + textToSign);
+
+        return sign(sign_privkey, textToSign);
+
+    }).then(function (b) {
+
+        console.log("signed: " + b.typeof);
+        console.log("signed: " + JSON.stringify(b));
+
+        signatureStr = b;
+
+        var createtime = new Date();
+
+        // now write to db all relevant inof about this offer
+        newItem = {
+            "refId": offerRefId,
+            "offeredKeyId": offeredKeyId,
+            "createTime": createtime,
+            'jwk': {
+                "alg": "A128GCM",
+                "ext": true,
+                "key_ops": ['decrypt'],
+                "kty": "oct"
+            },
+            "textToSign": "textToSign",
+            "format": "text",
+            "sign_privkey": sign_privkey,
+            "sign_pubkey": sign_pubkey,
+            "recipientusername": "test"
+        };
+
+        token_text = textToSign + ":" + signatureStr;
+
+        console.log("verified: " + token_text);
+        console.log("verified: " + _arrayBufferToBase64(stringToArrayBuffer(token_text)));
+
+        console.log("verified: " + ab2str(str2ab(token_text)));
+
+        var shorty_2 = new Shorty();
+        console.log("verified: " + _arrayBufferToBase64(str2ab(shorty_2.deflate(token_text))));
+
+        var shorty_3 = new Shorty();
+        var shorty_4 = new Shorty();
+
+        console.log("verified: " + shorty_3.inflate(ab2str(_base64ToArrayBuffer(_arrayBufferToBase64(str2ab(shorty_4.deflate('{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}' + ":" + signatureStr)))))));
+        var shorty_6 = new Shorty();
+
+        token_text = ':GloveboxSecureKeyOfferToken:' + _arrayBufferToBase64(str2ab(shorty_6.deflate('{"refId":"' + offerRefId + '","offeredKeyId":"' + offeredKeyId + '","sign_pubkey":"' + sign_pubkey.n + '"}' + ":" + signatureStr))) + ':';
+        console.log("token plaintext: " + token_text);
+        var shorty_5 = new Shorty();
+        console.log("verified: 22");
+        console.log("GloveboxSecureKeyOfferToken plaintext: " + shorty_5.inflate(ab2str(_base64ToArrayBuffer(token_text.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1')))));
+
+        console.log("writing offer to db> ");
+
+        // insert key into the database of trusted decryption keys
+        return saveToIndexedDB('createdKeyOffersDB', 'createdKeyOffersStore', 'refId', newItem);
+    }).then(function (response) {
+        console.log("###### textToSign:" + textToSign);
+        console.log("###### signature:" + signatureStr);
+        console.log("###### key:" + sign_pubkey);
+        console.log("###### key:" + JSON.stringify(sign_pubkey));
+
+        return verify(sign_pubkey, signatureStr, textToSign);
+    }).then(function (c) {
+        console.log("verified: " + c);
+        console.log("###calling Paste_GloveboxSecureKeyOfferToken.js");
+        return browser.tabs.executeScript({
+            file: "Paste_GloveboxSecureKeyOfferToken.js"
+        });
+    }).then(function (result) {
+        console.log("backgroupd.js: token_text: " + token_text);
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        browser.tabs.sendMessage(tabs[0].id, {
+            Paste_GloveboxSecureKeyOfferToken_text: token_text,
+            CiphertextToPlaintext: "Glbx_marker3"
+        });
+
+    }).then(function (r) {
+        // call to remove page listener
+        console.log("###calling RemoveTabOnMessageListenerPasteTokenText.js");
+        browser.tabs.executeScript({
+            file: "RemoveTabOnMessageListenerPasteTokenText.js",
+            allFrames: true
+        });
+
+    }).catch(function (error) {
+        console.log("error: " + error);
+
+        // "String contains an invalid character"
+        // "not found"
+
+    });
+}
+
+// Takes two parameters
+// contenttype
+// value: "html" (default)  and "text"
+
+// duration
+//value: "temp" and "perm" (default)
+
+
+function glovebox_decrypthtml(info, contenttype, duration) {
+
+    console.log("glovebox-decrypthtml (info," + contenttype + ", " + duration + ")");
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
+
+    // recreate datastore if needed - fix this later
+    var request = indexedDB.open("decryptionKeysDB", 1);
+    request.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("background.js: create objectstore decryptionKeys in gloveboxKeys");
+        var objectStore2 = db.createObjectStore('decryptionKeysStore', {
+                keyPath: 'keyId'
+            });
+
+        objectStore2.createIndex('keyId', 'keyId', {
+            unique: true
+        });
+    };
+    request.onerror = function (event) {
+        console.log("background.js: dp open request error 201");
+    };
+    request.onsuccess = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {
+            console.log("background.js: db open request error 2");
+        };
+        db.onsuccess = function (event) {
+            console.log("background.js: db open request success 2");
+        };
+    };
+
+    var request2 = indexedDB.open('encryptionKeysDB', 1);
+    request2.onupgradeneeded = function (event) {
+        db = event.target.result;
+        db.onerror = function (event) {};
+        // Create an objectStore in this database to keep trusted decryption
+        // keys
+        console.log("background.js: create objectstore encryptionKeys in gloveboxKeys");
+        var objectStore2 = db.createObjectStore('encryptionKeysStore', {
                 keyPath: 'keyId'
             });
 
@@ -2147,6 +1526,8 @@ function glovebox_decrypthtml() {
     // call out to the tab to get the complete text
     var glovebox_token_ciphertext = "";
     var replacement_html = "";
+    // ID of tab in use
+    var tab_id = "";
     // console.log("background.js:decrypt: call to GetHTML");
     console.log("###calling Get_GloveboxCiphertext.js");
 
@@ -2162,11 +1543,12 @@ function glovebox_decrypthtml() {
             active: true,
             currentWindow: true
         }).then(function (tabs) {
+            tab_id = tabs[0].id;
             // send message to the active tab
-            browser.tabs.sendMessage(tabs[0].id, {
-                GetGloveboxCiphertext: "Glbx_marker"
+            browser.tabs.sendMessage(tab_id, {
+            	Get_GloveboxCiphertext: "Glbx_marker7"
             }).then(function (res) {
-                console.log("###### GetGloveboxCiphertext response " + JSON.stringify(res));
+                console.log("###### Get_GloveboxCiphertext response " + JSON.stringify(res));
                 glovebox_token_ciphertext = convertPsuedoTextToBase64(res.response.doc);
                 console.log("###### glovebox_token_ciphertext " + glovebox_token_ciphertext);
 
@@ -2184,7 +1566,7 @@ function glovebox_decrypthtml() {
 
                 // get the deckryption key
 
-                return loadFromIndexedDB('trustedDecryptionKeys', 'decryptionKeys', decryptkey_uuid);
+                return loadFromIndexedDB('decryptionKeysDB', 'decryptionKeysStore', decryptkey_uuid);
             }).then(function (response) {
                 console.log("got key object: " + response);
                 console.log("got key object: " + JSON.stringify(response));
@@ -2250,42 +1632,44 @@ function glovebox_decrypthtml() {
 
                 // send the decrypted text back to the tab
 
-                console.log("###calling CiphertextToGloveboxMarkup.js");
+                console.log("###calling CiphertextToPlaintext.js");
 
                 // execute script in active tab
                 return browser.tabs.executeScript({
-                    file: "CiphertextToGloveboxMarkup.js",
+                    file: "CiphertextToPlaintext.js",
                     allFrames: true
                 });
 
             }).then(function (result) {
 
-                return browser.tabs.query({
-                    active: true,
-                    currentWindow: true
-                });
-            }).then(function (tabs) {
+            	try{
                 // send message to the active tab
                 console.log("replace" + glovebox_token_ciphertext);
-                console.log("with" + replacement_html);
+                console.log("with: " + replacement_html);
 
-                browser.tabs.sendMessage(tabs[0].id, {
-                    ciphertext_replacement_html: replacement_html,
-                    regex: glovebox_token_ciphertext
-                });
+                browser.tabs.sendMessage(tab_id, {
+                    ciphertext_replacement: replacement_html,
+                    regex: glovebox_token_ciphertext,
+                    contenttype: contenttype,
+                    CiphertextToPlaintext: "Glbx_marker3",
+                    duration: duration
 
-            }).then(function (a) {
-                console.log("###calling RemoveTabOnMessageListenerGetGloveboxCiphertext.js");
-                browser.tabs.executeScript({
-                    file: "RemoveTabOnMessageListenerGetGloveboxCiphertext.js",
-                    allFrames: true
                 });
-            }).then(function (a) {
-                console.log("###calling RemoveTabOnMessageListenerCiphertextToHTML.js");
-                browser.tabs.executeScript({
-                    file: "RemoveTabOnMessageListenerCiphertextToHTML.js",
-                    allFrames: true
-                });
+            	 } catch (e) {
+                     console.log(e);
+                 }
+                //   }).then(function (a) {
+                //        console.log("###calling RemoveTabOnMessageListenerGetGloveboxCiphertext.js");
+                //        browser.tabs.executeScript({
+                //            file: "RemoveTabOnMessageListenerGetGloveboxCiphertext.js",
+                //            allFrames: true
+                //        });
+                //  }).then(function (a) {
+                //       console.log("###calling RemoveTabOnMessageListenerCiphertextToHTML.js");
+                //       browser.tabs.executeScript({
+                //           file: "RemoveTabOnMessageListenerCiphertextToHTML.js",
+                //           allFrames: true
+                //       });
             });
 
         }).then(function (responsefromtab) {
@@ -2295,278 +1679,278 @@ function glovebox_decrypthtml() {
 
     });
 
-	
 }
 
-function consume_GloveboxSecureKeyOfferToken(){
+function consume_GloveboxSecureKeyOfferToken() {
 
-console.log("background.js: consume-GloveboxSecureKeyOfferToken");
+    console.log("background.js: consume-GloveboxSecureKeyOfferToken");
 
-// accept the offered decryption token. This means to return a token
-// contaning the reference value signed by own private key and include
-// in it own public key.
+    // accept the offered decryption token. This means to return a token
+    // contaning the reference value signed by own private key and include
+    // in it own public key.
 
-// this action removes the token text and replaces it with the new token
-// text.
-
-
-// token_text = ':GloveboxAcceptSecureOfferToken:' +
-// _arrayBufferToBase64(stringToArrayBuffer(shorty_2.deflate('{"refId":'+offerRefId
-// + ',"offeredKeyId":' + offeredKeyId+ '}:' + b )));
+    // this action removes the token text and replaces it with the new token
+    // text.
 
 
-indexedDB = window.indexedDB || window.webkitIndexedDB ||
-    window.mozIndexedDB || window.msIndexedDB;
+    // token_text = ':GloveboxAcceptSecureOfferToken:' +
+    // _arrayBufferToBase64(stringToArrayBuffer(shorty_2.deflate('{"refId":'+offerRefId
+    // + ',"offeredKeyId":' + offeredKeyId+ '}:' + b )));
 
-// extract the offer reference id and key ID.
-// encrypt with key owner's prublic key
-// sign own privateKey
-//
 
-var publicKey;
-var offerRefId;
-var requestedKeyId;
-var privateKeyJwk;
-var publicKeyJwk;
-var requestSignature;
-var requestToEncrypt;
-var signingKeyPair;
-var token_text;
-var encrypted_requestkeyid;
-var enckeypairobj; // pp key pair object generetated by the secret key
-// recipient
-var enc_pubkey; // include this public RSA key in the response token to
-// the key sender
-var enc_privkey; // encrypt the response token with this generated
-// private key.
+    indexedDB = window.indexedDB || window.webkitIndexedDB ||
+        window.mozIndexedDB || window.msIndexedDB;
 
-var sender_sign_publicKey;
-// execute script in active tab
-// colllect the token
-console.log("###calling Get_GloveboxSecureKeyOfferToken.js");
+    // extract the offer reference id and key ID.
+    // encrypt with key owner's prublic key
+    // sign own privateKey
+    //
 
-browser.tabs.executeScript({
-    file: "Get_GloveboxSecureKeyOfferToken.js",
-    allFrames: true
-}).then(function (result) {
-    console.log("background.js:onExecuted4: We made it ....");
-    // console.log("background.js:onExecuted4: result: " + result);
-    // console.log("backgroupd.js:onExecuted4:selected_text: " +
-    // selected_text);
-    // console.log("backgroupd.js:onExecuted4:replacement_text: " +
-    // replacement_text);
-    // query for the one active tab
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-    // send message to the active tab
-    return browser.tabs.sendMessage(tabs[0].id, {
-        Get_GloveboxSecureKeyOfferToken_replacement: "Glovebox token read.",
-        remove: "true"
-    });
-}).then(function (res) {
-    // read in the token text
-    console.log("###### getHTML response " + JSON.stringify(res));
-    glovebox_token_ciphertext = res.response.token;
-    console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1'));
-    // start decoding and decryting the token
-    console.log("token ciphertext: " + _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1')));
+    var publicKey;
+    var offerRefId;
+    var requestedKeyId;
+    var privateKeyJwk;
+    var publicKeyJwk;
+    var requestSignature;
+    var requestToEncrypt;
+    var signingKeyPair;
+    var token_text;
+    var encrypted_requestkeyid;
+    var enckeypairobj; // pp key pair object generetated by the secret key
+    // recipient
+    var enc_pubkey; // include this public RSA key in the response token to
+    // the key sender
+    var enc_privkey; // encrypt the response token with this generated
+    // private key.
 
-    var shorty_51 = new Shorty();
+    var sender_sign_publicKey;
+    // execute script in active tab
+    // colllect the token
+    console.log("###calling Get_GloveboxSecureKeyOfferToken.js");
 
-    var t = shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1'))));
-    token_plaintext = t.replace(/}:[^}]*$/, '}');
-    console.log("GloveboxSecureKeyOfferToken plaintext: " + token_plaintext);
-
-    token_obj = JSON.parse(token_plaintext);
-
-    sender_sign_publicKey = token_obj.sign_pubkey;
-    offerRefId = token_obj.refId;
-    requestedKeyId = token_obj.offeredKeyId;
-
-    console.log("token publicKey: " + sender_sign_publicKey);
-
-    // assmlble a public key JWK with includes the key ("n") from the
-    // received token
-    var sender_sign_publicKeyJwk = {
-        "alg": "RS1",
-        "e": "AQAB",
-        "ext": true,
-        "key_ops": ['verify'],
-        "kty": "RSA",
-        "n": sender_sign_publicKey
-    };
-
-    console.log("token publicKeyJwk: " + JSON.stringify(sender_sign_publicKeyJwk));
-
-    var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
-
-    console.log("token signatureStr: " + signatureStr);
-
-    console.log("token sign verification key: " + JSON.stringify(sender_sign_publicKeyJwk));
-
-    var st = JSON.parse('{"s":"' + signatureStr + '"}');
-    console.log("##### verified message 2:" + token_plaintext);
-
-    console.log("##### verified signature:" + signatureStr);
-
-    console.log("##### verified signature:" + st.s);
-    console.log("##### verify with key:" + sender_sign_publicKeyJwk);
-    console.log("##### verify with key:" + JSON.stringify(sender_sign_publicKeyJwk));
-
-    // verify the signature on the token
-    return verify(sender_sign_publicKeyJwk, signatureStr, token_plaintext);
-}).then(function (c) {
-    console.log("verified: " + c);
-
-    // ok, the token signature checks out.
-
-    // }).then(function (r) {
-    // call to remove page listener
-    console.log("###calling RemoveTabOnMessageListenerAcceptGloveboxSecureKeyOfferToken.js");
     browser.tabs.executeScript({
-        file: "RemoveTabOnMessageListenerAcceptGloveboxSecureKeyOfferToken.js",
+        file: "Get_GloveboxSecureKeyOfferToken.js",
         allFrames: true
+    }).then(function (result) {
+        console.log("background.js:onExecuted4: We made it ....");
+        // console.log("background.js:onExecuted4: result: " + result);
+        // console.log("backgroupd.js:onExecuted4:selected_text: " +
+        // selected_text);
+        // console.log("backgroupd.js:onExecuted4:replacement_text: " +
+        // replacement_text);
+        // query for the one active tab
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+        // send message to the active tab
+        return browser.tabs.sendMessage(tabs[0].id, {
+            Get_GloveboxSecureKeyOfferToken_replacement: "Glovebox token read.",
+            Get_GloveboxSecureKeyOfferToken: "Glbx_marker4",
+            remove: "true"
+        });
+    }).then(function (res) {
+        // read in the token text
+        console.log("###### getHTML response " + JSON.stringify(res));
+        glovebox_token_ciphertext = res.response.token;
+        console.log("token ciphertext: " + glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1'));
+        // start decoding and decryting the token
+        console.log("token ciphertext: " + _base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1')));
+
+        var shorty_51 = new Shorty();
+
+        var t = shorty_51.inflate(ab2str(_base64ToArrayBuffer(glovebox_token_ciphertext.replace(/:GloveboxSecureKeyOfferToken:(.*):/, '$1'))));
+        token_plaintext = t.replace(/}:[^}]*$/, '}');
+        console.log("GloveboxSecureKeyOfferToken plaintext: " + token_plaintext);
+
+        token_obj = JSON.parse(token_plaintext);
+
+        sender_sign_publicKey = token_obj.sign_pubkey;
+        offerRefId = token_obj.refId;
+        requestedKeyId = token_obj.offeredKeyId;
+
+        console.log("token publicKey: " + sender_sign_publicKey);
+
+        // assmlble a public key JWK with includes the key ("n") from the
+        // received token
+        var sender_sign_publicKeyJwk = {
+            "alg": "RS1",
+            "e": "AQAB",
+            "ext": true,
+            "key_ops": ['verify'],
+            "kty": "RSA",
+            "n": sender_sign_publicKey
+        };
+
+        console.log("token publicKeyJwk: " + JSON.stringify(sender_sign_publicKeyJwk));
+
+        var signatureStr = t.replace(/^.*}/, '').replace(/^:*/, '');
+
+        console.log("token signatureStr: " + signatureStr);
+
+        console.log("token sign verification key: " + JSON.stringify(sender_sign_publicKeyJwk));
+
+        var st = JSON.parse('{"s":"' + signatureStr + '"}');
+        console.log("##### verified message 2:" + token_plaintext);
+
+        console.log("##### verified signature:" + signatureStr);
+
+        console.log("##### verified signature:" + st.s);
+        console.log("##### verify with key:" + sender_sign_publicKeyJwk);
+        console.log("##### verify with key:" + JSON.stringify(sender_sign_publicKeyJwk));
+
+        // verify the signature on the token
+        return verify(sender_sign_publicKeyJwk, signatureStr, token_plaintext);
+    }).then(function (c) {
+        console.log("verified: " + c);
+
+        // ok, the token signature checks out.
+
+        // }).then(function (r) {
+        // call to remove page listener
+        console.log("###calling RemoveTabOnMessageListenerAcceptGloveboxSecureKeyOfferToken.js");
+        browser.tabs.executeScript({
+            file: "RemoveTabOnMessageListenerAcceptGloveboxSecureKeyOfferToken.js",
+            allFrames: true
+        });
+
+        // start to compose the "answer" token
+        // create a new key to use to encrypt the response
+        // Include the public key with which the key Sender should encrypt
+        // the secret key.
+        return window.crypto.subtle.generateKey({
+            name: "RSA-OAEP",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: {
+                name: "SHA-256"
+            }
+        },
+            true,
+            ['encrypt', 'decrypt']);
+
+    }).then(function (key) {
+        console.log(key);
+        console.log(key.privateKey);
+
+        enckeypairobj = key;
+        return window.crypto.subtle.exportKey('jwk', enckeypairobj.publicKey);
+        // }).catch(function (err) {
+        // console.log("HEY!: " + err.message);
+    }).then(function (key_pub) {
+        enc_pubkey = key_pub;
+        console.log(key_pub);
+        console.log("recipient encryption pubkey: " + JSON.stringify(key_pub));
+
+        return window.crypto.subtle.exportKey('jwk', enckeypairobj.privateKey);
+        // }).catch(function (err) {
+        // console.log("HEY!: " + err.message);
+    }).then(function (key_priv) {
+        enc_privkey = key_priv;
+        console.log(enc_privkey);
+        console.log("recipient encryption privkey: " + JSON.stringify(enc_privkey));
+
+        var request_record;
+        request_record = {
+            "refId": offerRefId,
+            "offeredKeyId": requestedKeyId,
+            "enc_pubkey": enc_pubkey,
+            "enc_privkey": enc_privkey,
+            "sender_sign_publicKey": sender_sign_publicKey
+        };
+
+        console.log("saving: " + JSON.stringify(request_record));
+
+        return saveToIndexedDB('acceptedKeyOffersDB', 'acceptedKeyOffersStore', offerRefId, request_record);
+
+    }).then(function (c) {
+
+        // respond with an encrypted request for the decryption key in
+        // question.
+        // include the reference ID for authentication purposes.
+
+
+        console.log("##### encrypt message:" + requestedKeyId);
+
+        // encrypt the uuid for the decryption key that is requested
+        let enc = new TextEncoder();
+
+        let encoded = enc.encode(requestedKeyId);
+
+        return window.crypto.subtle.encrypt({
+            name: "RSA-OAEP"
+        },
+            enckeypairobj.publicKey,
+            encoded);
+
+    }).then(function (c) {
+
+        encrypted_requestkeyid = c;
+
+        // return window.crypto.subtle.importKey(
+        // 'jwk', recipient_enc_publicKeyJwk, {
+        // name: "RSA-OAEP",
+        // hash: {
+        // name: "SHA-256"
+        // },
+        // },
+        // true,
+        // ['encrypt']);
+        // }).then(function (gg) {
+        // console.log("re-imported public key:" + gg);
+
+
+        console.log("encrypted requested keyid: " + _arrayBufferToBase64(encrypted_requestkeyid));
+
+        console.log("###calling Paste_GloveboxAcceptedSecureKeyOfferToken.js");
+        return browser.tabs.executeScript({
+            file: "Paste_GloveboxAcceptedSecureKeyOfferToken.js"
+        });
+    }).then(function (result) {
+        // console.log("backgroupd.js: token_text: " + token_text);
+        return browser.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+    }).then(function (tabs) {
+
+        var shorty_7 = new Shorty();
+
+        // token_text = '{"refId":"' + offerRefId + '","requestKeyId":"' +
+        // _arrayBufferToBase64(encrypted_requestkeyid) + '","enc_pubkey":"'
+        // + enc_pubkey.n + '"}';
+        // dispence with encryption of key id
+        var token_text = ':GloveboxAcceptedSecureKeyOfferToken:' + _arrayBufferToBase64(str2ab(shorty_7.deflate('{"refId":"' + offerRefId + '","requestKeyId":"' + requestedKeyId + '","recipient_enc_pubkey":"' + enc_pubkey.n + '"}'))) + ':';
+
+        var shorty_out = new Shorty();
+
+        console.log("GloveboxAcceptedSecureKeyOfferToken plaintext: " + token_text);
+
+        browser.tabs.sendMessage(tabs[0].id, {
+
+            Paste_GloveboxAcceptedSecureKeyOfferToken_text: token_text, 
+            CiphertextToPlaintext: "Glbx_marker3"
+        });
+    }).then(function (r) {
+        // call to remove page listener
+        console.log("###calling Remove_Paste_GloveboxAcceptedSecureKeyOfferToken_Listener.js");
+        browser.tabs.executeScript({
+            file: "Remove_Paste_GloveboxAcceptedSecureKeyOfferToken_Listener.js",
+            allFrames: true
+        });
+
+    }).catch(function (error) {
+        console.log("error: " + error);
+
+        // "String contains an invalid character"
+        // "not found"
+
     });
 
-    // start to compose the "answer" token
-    // create a new key to use to encrypt the response
-    // Include the public key with which the key Sender should encrypt
-    // the secret key.
-    return window.crypto.subtle.generateKey({
-        name: "RSA-OAEP",
-        modulusLength: 1024,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: {
-            name: "SHA-256"
-        }
-    },
-        true,
-        ['encrypt', 'decrypt']);
-
-}).then(function (key) {
-    console.log(key);
-    console.log(key.privateKey);
-
-    enckeypairobj = key;
-    return window.crypto.subtle.exportKey('jwk', enckeypairobj.publicKey);
-    // }).catch(function (err) {
-    // console.log("HEY!: " + err.message);
-}).then(function (key_pub) {
-    enc_pubkey = key_pub;
-    console.log(key_pub);
-    console.log("recipient encryption pubkey: " + JSON.stringify(key_pub));
-
-    return window.crypto.subtle.exportKey('jwk', enckeypairobj.privateKey);
-    // }).catch(function (err) {
-    // console.log("HEY!: " + err.message);
-}).then(function (key_priv) {
-    enc_privkey = key_priv;
-    console.log(enc_privkey);
-    console.log("recipient encryption privkey: " + JSON.stringify(enc_privkey));
-
-    var request_record;
-    request_record = {
-        "refId": offerRefId,
-        "offeredKeyId": requestedKeyId,
-        "enc_pubkey": enc_pubkey,
-        "enc_privkey": enc_privkey,
-        "sender_sign_publicKey": sender_sign_publicKey
-    };
-
-    console.log("saving: " + JSON.stringify(request_record));
-
-    return saveToIndexedDB('acceptedKeyOffers', 'acceptedKeyOffers', offerRefId, request_record);
-
-}).then(function (c) {
-
-    // respond with an encrypted request for the decryption key in
-    // question.
-    // include the reference ID for authentication purposes.
-
-
-    console.log("##### encrypt message:" + requestedKeyId);
-
-    // encrypt the uuid for the decryption key that is requested
-    let enc = new TextEncoder();
-
-    let encoded = enc.encode(requestedKeyId);
-
-    return window.crypto.subtle.encrypt({
-        name: "RSA-OAEP"
-    },
-        enckeypairobj.publicKey,
-        encoded);
-
-}).then(function (c) {
-
-    encrypted_requestkeyid = c;
-
-    // return window.crypto.subtle.importKey(
-    // 'jwk', recipient_enc_publicKeyJwk, {
-    // name: "RSA-OAEP",
-    // hash: {
-    // name: "SHA-256"
-    // },
-    // },
-    // true,
-    // ['encrypt']);
-    // }).then(function (gg) {
-    // console.log("re-imported public key:" + gg);
-
-
-    console.log("encrypted requested keyid: " + _arrayBufferToBase64(encrypted_requestkeyid));
-
-    console.log("###calling Paste_GloveboxAcceptedSecureKeyOfferToken.js");
-    return browser.tabs.executeScript({
-        file: "Paste_GloveboxAcceptedSecureKeyOfferToken.js"
-    });
-}).then(function (result) {
-    // console.log("backgroupd.js: token_text: " + token_text);
-    return browser.tabs.query({
-        active: true,
-        currentWindow: true
-    });
-}).then(function (tabs) {
-
-    var shorty_7 = new Shorty();
-
-    // token_text = '{"refId":"' + offerRefId + '","requestKeyId":"' +
-    // _arrayBufferToBase64(encrypted_requestkeyid) + '","enc_pubkey":"'
-    // + enc_pubkey.n + '"}';
-    // dispence with encryption of key id
-    var token_text = ':GloveboxAcceptedSecureKeyOfferToken:' + _arrayBufferToBase64(str2ab(shorty_7.deflate('{"refId":"' + offerRefId + '","requestKeyId":"' + requestedKeyId + '","recipient_enc_pubkey":"' + enc_pubkey.n + '"}'))) + ':';
-
-    var shorty_out = new Shorty();
-
-    console.log("GloveboxAcceptedSecureKeyOfferToken plaintext: " + token_text);
-
-    browser.tabs.sendMessage(tabs[0].id, {
-
-        Paste_GloveboxAcceptedSecureKeyOfferToken_text: token_text
-    });
-}).then(function (r) {
-    // call to remove page listener
-    console.log("###calling Remove_Paste_GloveboxAcceptedSecureKeyOfferToken_Listener.js");
-    browser.tabs.executeScript({
-        file: "Remove_Paste_GloveboxAcceptedSecureKeyOfferToken_Listener.js",
-        allFrames: true
-    });
-
-}).catch(function (error) {
-    console.log("error: " + error);
-
-    // "String contains an invalid character"
-    // "not found"
-
-});
-
-// remove listener
-// RemoveTabOnMessageListenerPasteGloveboxAcceptedSecureKeyOfferToken
+    // remove listener
+    // RemoveTabOnMessageListenerPasteGloveboxAcceptedSecureKeyOfferToken
 }
-
 
 async function sign_async(privateKeyObj, message) {
 
@@ -2608,6 +1992,28 @@ async function sign(privateKeyJwk, message) {
 
     // converts the signature to a colon seperated string
     return new Uint8Array(signature).join(':');
+}
+
+// Return the uuid referencing the key required to decrypt the glovebox text
+// takes a de-obfuscated token as input
+function get_keyuuid_from_gloveboxtoken(token) {
+    console.log("called get_keyuuid_from_gloveboxtoken on: " + token);
+
+    var uuid = "";
+    try {
+        // get key reference id info out of token
+        const decryptkey_uuid_regex = new RegExp(':Glovebox:([^:]*):', 'm');
+
+        if ((match3 = decryptkey_uuid_regex.exec(token)) != null) {
+            uuid = match3[1];
+            console.log("key id: " + uuid);
+        }
+    } catch (e) {
+        console.log(e);
+    }
+
+    return uuid;
+
 }
 
 async function verify(publicKeyJwk, signatureStr, message) {
@@ -2815,7 +2221,7 @@ async function publicKeyDecrypt(myPrivateKey, data) {
 }
 
 async function publicKeyEncrypt(theirPublicKey, data) {
-
+    console.log("publicKeyEncrypt:begin");
     keyPair = await window.crypto.subtle.generateKey({
             name: "RSA-OAEP",
             modulusLength: 2048,
@@ -2890,6 +2296,7 @@ async function publicKeyEncrypt(theirPublicKey, data) {
         });
     console.log("pubkey: " + JSON.stringify(pubkey));
 
+    console.log("publicKeyEncrypt:end");
     return window.crypto.subtle.encrypt({
         name: "RSA-OAEP"
     }, pubk2, "data");
@@ -2909,13 +2316,13 @@ function do_db_setup() {
     indexedDB = window.indexedDB || window.webkitIndexedDB ||
         window.mozIndexedDB || window.msIndexedDB;
 
-    var request = indexedDB.open("trustedDecryptionKeys", 1);
+    var request = indexedDB.open("decryptionKeysDB", 1);
     request.onupgradeneeded = function (event) {
         db = event.target.result;
         db.onerror = function (event) {};
         // Create an objectStore in this database to keep trusted decryption
         // keys
-        console.log("background.js: create objectstore decryptionKeys in trustedDecryptionKeys ");
+        console.log("background.js: create objectstore decryptionKeysStore in decryptionKeysDB");
         var objectStore2 = db.createObjectStore('decryptionKeys', {
                 keyPath: 'keyId'
             });
@@ -2937,14 +2344,14 @@ function do_db_setup() {
         };
     };
 
-    var request2 = indexedDB.open('encryptionKeys', 1);
+    var request2 = indexedDB.open('encryptionKeysDB', 1);
     request2.onupgradeneeded = function (event) {
         db = event.target.result;
         db.onerror = function (event) {};
         // Create an objectStore in this database to keep trusted decryption
         // keys
-        console.log("background.js: create objectstore encryptionKeys in encryptionKeys ");
-        var objectStore2 = db.createObjectStore('encryptionKeys', {
+        console.log("background.js: create objectstore encryptionKeysStore in  encryptionKeysDB");
+        var objectStore2 = db.createObjectStore('encryptionKeysStore', {
                 keyPath: 'keyId'
             });
 
@@ -2965,14 +2372,14 @@ function do_db_setup() {
         };
     };
 
-    var request3 = indexedDB.open("encryptionKeysSecureOffers", 1);
+    var request3 = indexedDB.open("createdKeyOffersDB", 1);
     request3.onupgradeneeded = function (event) {
         db = event.target.result;
         db.onerror = function (event) {};
         // Create an objectStore in this database to keep offers to passout
         // decryption keys in a secure way.
-        console.log("background.js: create objectstore for secure key offers ");
-        var objectStore2 = db.createObjectStore("createdKeyOffers", {
+        console.log("background.js: create objectstore createdKeyOffersStore for secure key offers ");
+        var objectStore2 = db.createObjectStore("createdKeyOffersStore", {
                 keyPath: "refId"
             });
 
@@ -2994,16 +2401,6 @@ function do_db_setup() {
     };
 
 }
-
-function handleMessage(request, sender, sendResponse) {
-    console.log("##  ##  ##  ##  # Message from the content script: " +
-        request.greeting);
-    sendResponse({
-        response: "Response from background script"
-    });
-}
-
-browser.runtime.onMessage.addListener(handleMessage);
 
 // create a new encryption key and place it both in the encryption and
 // decryption key databases
@@ -3081,7 +2478,7 @@ async function generate_encryption_key() {
 
             console.log('data to be saved 1: ' + JSON.stringify(newItem));
             // '{'keyId':" one "," uuid ":" two "}'
-            saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'keyId', newItem)
+            saveToIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'keyId', newItem)
 
             .then(function (b) {
                 console.log('background.js:generate_encryption_key:generated 2:' + uuid);
@@ -3097,7 +2494,7 @@ async function generate_encryption_key() {
                 };
                 console.log('data to be saved 2: ' + JSON.stringify(newItem));
 
-                saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+                saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem).then(function (response) {
                     console.log('data saved on ' + uuid);
                     resolve(newItem);
                 }).catch(function (error) {
@@ -3108,7 +2505,6 @@ async function generate_encryption_key() {
         });
     });
 }
-
 
 // Takes base64 text and recasts it into something that looks like plain written
 // text
@@ -3167,31 +2563,31 @@ function makeDefaultEncryptionKey(uuid) {
     // get tne existing default key and give it a new keyId
 
 
-    loadFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey').then(function (currentdefaultkey) {
+    loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey').then(function (currentdefaultkey) {
 
-        console.log("ibackground.js: makeDefaultEncryptionKey read default from db:           " + currentdefaultkey);
-        console.log("ibackground.js: makeDefaultEncryptionKey read default from db:           " + JSON.stringify(currentdefaultkey));
+        console.log("background.js: makeDefaultEncryptionKey read default from db:           " + currentdefaultkey);
+        console.log("background.js: makeDefaultEncryptionKey read default from db:           " + JSON.stringify(currentdefaultkey));
         // make the UUID of the object the new keyId
         currentdefaultkey.keyId = currentdefaultkey.uuid;
 
-        saveToIndexedDB('encryptionKeys', 'encryptionKeys', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
-            console.log("ibackground.js: makeDefaultEncryptionKey save to db: " + response);
+        saveToIndexedDB('encryptionKeysDB', 'encryptionKeysStore', currentdefaultkey.keyId, currentdefaultkey).then(function (response) {
+            console.log("background.js: makeDefaultEncryptionKey save to db: " + response);
 
         });
 
     });
 
-    loadFromIndexedDB('encryptionKeys', 'encryptionKeys', uuid).then(function (obj) {
+    loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', uuid).then(function (obj) {
 
-        console.log("ibackground.js: makeDefaultEncryptionKey read from db: " + obj);
-        console.log("ibackground.js: makeDefaultEncryptionKey read from db: " + JSON.stringify(obj));
+        console.log("background.js: makeDefaultEncryptionKey read from db: " + obj);
+        console.log("background.js: makeDefaultEncryptionKey read from db: " + JSON.stringify(obj));
         // reinsert with a new reference -
         obj.uuid = obj.keyId;
 
         // make defaultSecretKey the new keyid
         obj.keyId = 'defaultSecretKey';
 
-        saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey', obj).then(function (response) {
+        saveToIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey', obj).then(function (response) {
             console.log("ibackground.js: makeDefaultEncryptionKey save to db: " + response);
         });
 
@@ -3226,7 +2622,7 @@ async function makeNewDefaultEncryptionKey() {
 
             console.log("background.js: makeNewDefaultEncryptionKey2: " + JSON.stringify(genereated_key));
 
-            saveToIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey', genereated_key).then(function (response) {
+            saveToIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey', genereated_key).then(function (response) {
                 console.log("background.js: makeNewDefaultEncryptionKey save to db: " + response);
             });
             resolve(genereated_key);
@@ -3245,7 +2641,7 @@ async function addDefaultKeys() {
     var isone;
     try {
         console.log("##  # check if already is a default key ");
-        loadFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey').then(function (currentdefaultkey) {
+        loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey').then(function (currentdefaultkey) {
 
             console.log("background.js:          addDefaultKeys: found = " + currentdefaultkey);
             console.log("background.js: addDefaultKeys: found = " + JSON.stringify(currentdefaultkey));
@@ -3279,7 +2675,7 @@ async function getDefaultSecretKey() {
         function (resolve, reject) {
         console.log("getDefaultSecretKey:  ##  # check if there is a default key ");
 
-        loadFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey').then(function (currentdefaultkey) {
+        loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey').then(function (currentdefaultkey) {
 
             console.log("background.js: getDefaultSecretKey: found = " + currentdefaultkey);
             console.log("background.js: getDefaultSecretKey: found = " + JSON.stringify(currentdefaultkey));
@@ -3299,15 +2695,15 @@ async function getDefaultSecretKey() {
             if (err == " Error: objectstore_error ") {
                 console.log("background.js: respond to objectstore error ");
 
-                var request4 = indexedDB.open('encryptionKeys', 1);
+                var request4 = indexedDB.open('encryptionKeysDB', 1);
                 request4.onupgradeneeded = function (event) {
                     db = event.target.result;
                     db.onerror = function (event) {};
                     // Create an objectStore in this database to keep trusted
                     // decryption keys
-                    console.log("background.js: getDefaultSecretKey: create objectstore encryptionKeys in encryptionKeys ");
+                    console.log("background.js: getDefaultSecretKey: create objectstore encryptionKeysStore in encryptionKeysDB");
                     console.log("background.js: attempt to create objectstore ");
-                    var objectStore2 = db.createObjectStore('encryptionKeys', {
+                    var objectStore2 = db.createObjectStore('encryptionKeysStore', {
                             keyPath: 'keyId'
                         });
 
@@ -3336,7 +2732,7 @@ async function getDefaultSecretKey() {
                     console.log("background.js: getDefaultSecretKey: db open request success 2 ");
 
                     console.log("background.js: attempt to create objectstore ");
-                    var objectStore2 = db_1.createObjectStore('encryptionKeys', {
+                    var objectStore2 = db_1.createObjectStore('encryptionKeysStore', {
                             keyPath: 'keyId'
                         });
 
@@ -3360,60 +2756,6 @@ async function getDefaultSecretKey() {
         });
 
     });
-
-}
-
-// set up a default private key to be used if no other is available
-function getDefaultSecretKey_Bak(idb) {
-    console.log("background.js:       getDefaultSecretKey ");
-    console.log("background.js: getDefaultSecretKey db: " + idb);
-
-    // open a read/write db transaction, ready for adding the data
-    var IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction;
-    // var transaction = idb.transaction([" toDoList "], " readwrite ");
-    var transaction = idb.transaction([" toDoList "], IDBTransaction.READ);
-
-    // report on the success of the transaction completing, when everything is
-    // done
-    transaction.oncomplete = function (event) {
-        console.log("background.js: getDefaultSecretKey db transaction request 119 ");
-    };
-
-    transaction.onerror = function (event) {
-        console.log("background.js: getDefaultSecretKey db write transaction error 123 " + JSON.stringify(event));
-    };
-    transaction.onsuccess = function (event) {
-        console.log("background.js: getDefaultSecretKeydb read transaction success 123 " + JSON.stringify(event));
-
-    };
-
-    // create an object store on the transaction
-    var objectStore = transaction.objectStore('toDoList');
-
-    objectStore.onerror = function (event) {
-        console.log("background.js: getDefaultSecretKey: objectStore error " + event);
-    }
-    objectStore.onsuccess = function (event) {
-        console.log("background.js: getDefaultSecretKey: objectStore success " + event);
-    }
-
-    var objectStoreRequest = objectStore.get('defaultSecretKey');
-
-    objectStoreRequest.onsuccess = function (event) {
-        let data = objectStoreRequest.result;
-        console.log("background.js: getDefaultSecretKey: db object store read successful " + JSON.stringify(data));
-        console.log("background.js: getDefaultSecretKey: db object store read successful " + JSON.stringify(data.jwk));
-        // let data = objectStoreTitleRequest.result;
-        return data.key_jwk;
-
-    }
-    objectStoreRequest.onerror = function (event) {
-        console.log("background.js: getDefaultSecretKey: db object store read error " + event);
-    }
-
-    // {" alg ":" A128GCM "," ext ":true," k ":" 5 - c_gisskJa5lsX6W5Yj8g ","
-    // key_ops ":['encrypt','decrypt']," kty ":" oct "}
-
 
 }
 
@@ -3509,6 +2851,7 @@ async function encryptText(content, key) {
 function messageTab(tabs) {
     browser.tabs.sendMessage(tabs[0].id, {
         replacement: 'option1',
+        CiphertextToPlaintext: "Glbx_marker3",
         regex: 'reg1'
 
     });
@@ -4314,7 +3657,7 @@ async function get_default_signing_key_2() {
     var uuid;
     var dk;
     try {
-        defaultSigningKey = await loadFromIndexedDB('privateKeys', 'keyPairs', 'defaultPrivateKey');
+        defaultSigningKey = await loadFromIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultPrivateKey');
     } catch (e) {
         console.log(e);
     }
@@ -4335,10 +3678,7 @@ async function get_default_signing_key_2() {
     }
     // at this point there is a signing key available
 
-    
 
-
-    
     console.log("## get_default_signing_key_2 returning: " + JSON.stringify(defaultSigningKey));
     return defaultSigningKey;
 }
@@ -4394,46 +3734,46 @@ async function create_default_signing_key_2() {
 
     var key_pair_obj;
     key_pair_obj = await window.crypto.subtle.generateKey({
-        name: "RSASSA-PKCS1-v1_5",
-        modulusLength: 1024,
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-        hash: {
-            name: 'SHA-1'
+            name: "RSASSA-PKCS1-v1_5",
+            modulusLength: 1024,
+            publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+            hash: {
+                name: 'SHA-1'
+            },
         },
-    },
-        true,
-        ['sign', 'verify']); //.then(function (a) {
-        //key_pair_obj = a;
-        console.log("#### 2");
+            true,
+            ['sign', 'verify']); //.then(function (a) {
+    //key_pair_obj = a;
+    console.log("#### 2");
 
-        console.log(key_pair_obj);
-        console.log(typeof key_pair_obj);
+    console.log(key_pair_obj);
+    console.log(typeof key_pair_obj);
 
-//        return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-        var b = await window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-//    }).then(function (b) {
-        console.log(b);
-        console.log(typeof b);
-        sign_pubkey_jwk = b;
-        console.log("#### 3");
+    //        return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+    var b = await window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+    //    }).then(function (b) {
+    console.log(b);
+    console.log(typeof b);
+    sign_pubkey_jwk = b;
+    console.log("#### 3");
 
-        var c = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
+    var c = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
 
-//        return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-//    }).then(function (c) {
-        console.log(c);
-        console.log(c.alg);
-        // Have a valid RSA key been created ?
-        if (c.alg == "RS1") {
-            // ok, it has, set the flag to save it
-            createdNewSigningKey = true;
-        }
+    //        return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
+    //    }).then(function (c) {
+    console.log(c);
+    console.log(c.alg);
+    // Have a valid RSA key been created ?
+    if (c.alg == "RS1") {
+        // ok, it has, set the flag to save it
+        createdNewSigningKey = true;
+    }
 
-        console.log(typeof c);
-        sign_privkey_jwk = c;
-        console.log("#### 4");
+    console.log(typeof c);
+    sign_privkey_jwk = c;
+    console.log("#### 4");
 
-        key_pair_obj = await  window.crypto.subtle.generateKey({
+    key_pair_obj = await window.crypto.subtle.generateKey({
             name: "RSA-OAEP",
             modulusLength: 1024,
             publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
@@ -4443,49 +3783,49 @@ async function create_default_signing_key_2() {
         },
             true,
             ['encrypt', 'decrypt']);
-//    }).then(function (a) {
-        console.log("#### 6");
-  //      key_pair_obj = a;
-        console.log(key_pair_obj);
-        console.log(typeof key_pair_obj);
+    //    }).then(function (a) {
+    console.log("#### 6");
+    //      key_pair_obj = a;
+    console.log(key_pair_obj);
+    console.log(typeof key_pair_obj);
 
     //    return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-   // }).then(function (b) {
-        b = window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-            enc_pubkey_jwk = b;
+    // }).then(function (b) {
+    b = window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+    enc_pubkey_jwk = b;
 
     //    return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-   // }).then(function (c) {
-  //      enc_privatekey_jwk = c;
-            enc_privatekey_jwk = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-            
-        //  }
-        console.log("#### 5");
+    // }).then(function (c) {
+    //      enc_privatekey_jwk = c;
+    enc_privatekey_jwk = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
 
-        //  if (createdNewSigningKey) {
+    //  }
+    console.log("#### 5");
 
-        uuid = guid();
+    //  if (createdNewSigningKey) {
 
-        //      newItem = {
-        //          keyId: uuid,
-        //          uuid: uuid,
-        //          "key": expkey.k,
-        //          'jwk': expkey,
-        //          "ext": true
-        //       };
-        defaultSigningKey = {
-            'keyId': uuid,
-            "uuid": uuid,
-            "encryption_publicKey": enc_pubkey_jwk,
-            "encryption_privateKey": enc_privkey_jwk,
-            "signature_publicKeyJWK": sign_pubkey_jwk,
-            "signature_privateKeyJWK": sign_privkey_jwk,
+    uuid = guid();
 
-        };
+    //      newItem = {
+    //          keyId: uuid,
+    //          uuid: uuid,
+    //          "key": expkey.k,
+    //          'jwk': expkey,
+    //          "ext": true
+    //       };
+    defaultSigningKey = {
+        'keyId': uuid,
+        "uuid": uuid,
+        "encryption_publicKey": enc_pubkey_jwk,
+        "encryption_privateKey": enc_privkey_jwk,
+        "signature_publicKeyJWK": sign_pubkey_jwk,
+        "signature_privateKeyJWK": sign_privkey_jwk,
 
-        console.log("newitem: " + JSON.stringify(defaultSigningKey));
+    };
 
-//    });
+    console.log("newitem: " + JSON.stringify(defaultSigningKey));
+
+    //    });
 
     // at this point there is a signing key available
 
@@ -4493,8 +3833,6 @@ async function create_default_signing_key_2() {
 
     return defaultSigningKey;
 }
-
-
 
 async function create_default_signing_key_3() {
     console.log("#### create_default_signing_key_3:start");
@@ -4547,123 +3885,125 @@ async function create_default_signing_key_3() {
 
     var key_pair_obj;
     key_pair_obj = await window.crypto.subtle.generateKey({
-        name: 'RSASSA-PKCS1-v1_5',
-        modulusLength: 1024,
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-        hash: {
-            name: 'SHA-1'
-        },
-    },
-        true,
-        ['sign', 'verify']).then(function (a) {
-        key_pair_obj = a;
-        console.log("#### 2");
-
-        console.log(key_pair_obj);
-        console.log(typeof key_pair_obj);
-
-        return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-//        var b = await window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-    }).then(function (b) {
-        console.log(b);
-        console.log(typeof b);
-        sign_pubkey_jwk = b;
-        console.log("#### 3");
-
-//        var c = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-
-        return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-    }).then(function (c) {
-        console.log(c);
-        console.log(c.alg);
-        // Have a valid RSA key been created ?
-        if (c.alg == "RS1") {
-            // ok, it has, set the flag to save it
-            createdNewSigningKey = true;
-        }
-
-        console.log(typeof c);
-        sign_privkey_jwk = c;
-        console.log("#### 4");
-
-  return window.crypto.subtle.generateKey({
-            name: "RSA-OAEP",
+            name: 'RSASSA-PKCS1-v1_5',
             modulusLength: 1024,
             publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
             hash: {
-                name: "SHA-256"
+                name: 'SHA-1'
             },
         },
             true,
-            ['encrypt', 'decrypt']);
-    }).then(function (a) {
-        console.log("#### 6");
-       key_pair_obj = a;
-        console.log(key_pair_obj);
-        console.log(typeof key_pair_obj);
+            ['sign', 'verify']).then(function (a) {
+            key_pair_obj = a;
+            console.log("#### 2");
 
-       return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
-    }).then(function (b) {
-   //     b = window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+            console.log(key_pair_obj);
+            console.log(typeof key_pair_obj);
+
+            return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+            //        var b = await window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+        }).then(function (b) {
+            console.log(b);
+            console.log(typeof b);
+            sign_pubkey_jwk = b;
+            console.log("#### 3");
+
+            //        var c = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
+
+            return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
+        }).then(function (c) {
+            console.log(c);
+            console.log(c.alg);
+            // Have a valid RSA key been created ?
+            if (c.alg == "RS1") {
+                // ok, it has, set the flag to save it
+                createdNewSigningKey = true;
+            }
+
+            console.log(typeof c);
+            sign_privkey_jwk = c;
+            console.log("#### 4");
+
+            return window.crypto.subtle.generateKey({
+                name: "RSA-OAEP",
+                modulusLength: 1024,
+                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+                hash: {
+                    name: "SHA-256"
+                },
+            },
+                true,
+                ['encrypt', 'decrypt']);
+        }).then(function (a) {
+            console.log("#### 6");
+            key_pair_obj = a;
+            console.log(key_pair_obj);
+            console.log(typeof key_pair_obj);
+
+            return window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
+        }).then(function (b) {
+            //     b = window.crypto.subtle.exportKey('jwk', key_pair_obj.publicKey);
             enc_pubkey_jwk = b;
 
-        return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-    }).then(function (c) {
-        enc_privatekey_jwk = c;
-  //          enc_privatekey_jwk = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
-            
-        //  }
-        console.log("#### 5");
+            return window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
+        }).then(function (c) {
+            enc_privatekey_jwk = c;
+            //          enc_privatekey_jwk = await window.crypto.subtle.exportKey('jwk', key_pair_obj.privateKey);
 
-        //  if (createdNewSigningKey) {
+            //  }
+            console.log("#### 5");
 
-        uuid = guid();
+            //  if (createdNewSigningKey) {
 
-        //      newItem = {
-        //          keyId: uuid,
-        //          uuid: uuid,
-        //          "key": expkey.k,
-        //          'jwk': expkey,
-        //          "ext": true
-        //       };
-        defaultSigningKey = {
-            'keyId': uuid,
-            "uuid": uuid,
-            "encryption_publicKey": enc_pubkey_jwk,
-            "encryption_privateKey": enc_privkey_jwk,
-            "signature_publicKeyJWK": sign_pubkey_jwk,
-            "signature_privateKeyJWK": sign_privkey_jwk,
+            uuid = guid();
 
-        };
+            //      newItem = {
+            //          keyId: uuid,
+            //          uuid: uuid,
+            //          "key": expkey.k,
+            //          'jwk': expkey,
+            //          "ext": true
+            //       };
+            defaultSigningKey = {
+                'keyId': uuid,
+                "uuid": uuid,
+                "encryption_publicKey": enc_pubkey_jwk,
+                "encryption_privateKey": enc_privkey_jwk,
+                "signature_publicKeyJWK": sign_pubkey_jwk,
+                "signature_privateKeyJWK": sign_privkey_jwk,
 
-        console.log("newitem: " + JSON.stringify(defaultSigningKey));
-        return saveToIndexedDB('privateKeys', 'keyPairs', uuid, defaultSigningKey);
-    }).then(function (c) {
-    	// as well as on the id designating it as the default
-        defaultSigningKey.keyId = "defaultPrivateKey";
+            };
 
-        return saveToIndexedDB('privateKeys', 'keyPairs', 'defaultSigningKey', defaultSigningKey);
-        
-    });
+            console.log("newitem: " + JSON.stringify(defaultSigningKey));
+            return saveToIndexedDB('keyPairsDB', 'keyPairsStore', uuid, defaultSigningKey);
+        }).then(function (c) {
+            // as well as on the id designating it as the default
+            defaultSigningKey.keyId = "defaultPrivateKey";
+
+            return saveToIndexedDB('keyPairsDB', 'keyPairsStore', 'defaultSigningKey', defaultSigningKey);
+
+        });
 
     // at this point there is a signing key available
 
-    console.log("create_default_signing_key_2 returning: " + JSON.stringify(defaultSigningKey));
+    console.log("create_default_signing_key_3 returning: " + JSON.stringify(defaultSigningKey));
+    console.log("#### create_default_signing_key_3:end");
 
     return defaultSigningKey;
 }
 
-
-
 // generate a new (symmetric) encryption key
 
 
-// This function will generate an (symmetric) encryption key
+// This function will generate a symmetric encryption key
 
-// If there is no default key present , this key will also be designated the defaul encryption key
+// If there is no default encryption key designated, this key will also be designated the defaul encryption key
 
 // The generated encryption key will also be added to the repository of decryption keys.
 
+// A encryption key also requires a private key to sign it.
+// This will by default be a private key designated as the default.
+//If no default private signing key is present, one will also be created.
 
 
 async function generate_encryption_key() {
@@ -4878,18 +4218,18 @@ async function generate_encryption_key() {
 
         console.log('data to be saved: ' + JSON.stringify(new_decryption_key));
         //  '{'keyId':"one","uuid":"two"}'
-        return saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', new_encryption_key);
+        return saveToIndexedDB_async('encryptionKeysDB', 'encryptionKeysStore', 'keyId', new_encryption_key);
     }).then(function (rc) {
-   console.log(rc);
+        console.log(rc);
         // put into the decryption key store
-        return saveToIndexedDB_async('trustedDecryptionKeys', 'decryptionKeys', 'keyId', new_decryption_key);
+        return saveToIndexedDB_async('decryptionKeysDB', 'decryptionKeysStore', 'keyId', new_decryption_key);
     }).then(function (rc) {
-    	  console.log(rc);
-    	         // check if there is a default encryption key and if not, make this the default key.
+        console.log(rc);
+        // check if there is a default encryption key and if not, make this the default key.
 
         // console.log('consider as possible new default key: ' + JSON.stringify(newItem));
 
-        return loadFromIndexedDB('encryptionKeys', 'encryptionKeys', 'defaultSecretKey');
+        return loadFromIndexedDB('encryptionKeysDB', 'encryptionKeysStore', 'defaultSecretKey');
 
     }).then(function (currentdefaultkey) {
 
@@ -4910,20 +4250,20 @@ async function generate_encryption_key() {
             new_encryption_key.keyId = 'defaultSecretKey';
             console.log('data to be saved on defaultkey: ' + JSON.stringify(new_encryption_key));
 
-            saveToIndexedDB_async('encryptionKeys', 'encryptionKeys', 'keyId', new_encryption_key);
+            saveToIndexedDB_async('encryptionKeysDB', 'encryptionKeysStore', 'keyId', new_encryption_key);
 
         }
         if (err == "Error: objectstore_error") {
             console.log("background.js: respond to objectstore error");
 
-            var request4 = indexedDB.open('encryptionKeys', 1);
+            var request4 = indexedDB.open('encryptionKeysDB', 1);
             request4.onupgradeneeded = function (event) {
                 db = event.target.result;
                 db.onerror = function (event) {};
                 // Create an objectStore in this database to keep trusted decryption keys
-                console.log("background.js: getDefaultSecretKey: create objectstore encryptionKeys in encryptionKeys");
+                console.log("background.js: getDefaultSecretKey: create objectstore encryptionKeys in gloveboxKeys");
                 console.log("background.js: attempt to create objectstore");
-                var objectStore2 = db.createObjectStore('encryptionKeys', {
+                var objectStore2 = db.createObjectStore('encryptionKeysStore', {
                         keyPath: 'keyId'
                     });
 
@@ -4952,7 +4292,7 @@ async function generate_encryption_key() {
                 console.log("background.js:getDefaultSecretKey: db open request success 2");
 
                 console.log("background.js: attempt to create objectstore");
-                var objectStore2 = db_1.createObjectStore('encryptionKeys', {
+                var objectStore2 = db_1.createObjectStore('encryptionKeysStore', {
                         keyPath: 'keyId'
                     });
 
@@ -4979,6 +4319,7 @@ async function generate_encryption_key() {
 }
 
 function saveToIndexedDB_async(dbName, storeName, keyId, object) {
+    console.log("saveToIndexedDB_async:begin");
 
     console.log("saveToIndexedDB_async:dbname " + dbName);
     console.log("saveToIndexedDB_async:objectstorename " + storeName);
@@ -5043,23 +4384,29 @@ function saveToIndexedDB_async(dbName, storeName, keyId, object) {
                     console.log("saveToIndexedDB:error: " + storeName);
 
                     reject(Error('Error text'));
+                    console.log("saveToIndexedDB_async:end");
                 };
 
                 objectRequest.onsuccess = function (event) {
                     console.log("saveToIndexedDB:success: " + storeName);
                     resolve('Data saved OK');
+                    console.log("saveToIndexedDB_async:end");
                 };
             };
 
         } catch (error) {
             console.log(error);
+            console.log("saveToIndexedDB_async:end");
 
         }
 
     });
+    console.log("saveToIndexedDB_async:end");
+
 }
 
 async function saveToIndexedDB(dbName, storeName, id, object) {
+    console.log("saveToIndexedDB(" + dbName + "," + storeName + "," + id + ", ...): begin");
 
     console.log("saveToIndexedDB:1 " + dbName);
     console.log("saveToIndexedDB:2 " + storeName);
@@ -5067,5 +4414,7 @@ async function saveToIndexedDB(dbName, storeName, id, object) {
     console.log("saveToIndexedDB:4 " + JSON.stringify(object));
 
     await saveToIndexedDB_async(dbName, storeName, id, object);
+
+    console.log("saveToIndexedDB: completed");
 
 }

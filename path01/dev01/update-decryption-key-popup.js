@@ -44,7 +44,7 @@ function update_decryption_key() {
 
     console.log('data to be saved' + newItem);
 
-    utils_functions.saveToIndexedDB('trustedDecryptionKeys', 'decryptionKeys', 'keyId', newItem).then(function (response) {
+    utils_functions.saveToIndexedDB('decryptionKeysDB', 'decryptionKeysStore', 'keyId', newItem).then(function (response) {
         console.log('data saved');
     }).catch(function (error) {
         console.log(error.message);
